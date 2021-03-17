@@ -8,7 +8,7 @@ Pdf files and word document that are not publicly available can be shown using t
 
 <a href="https://angular-doc-viewer.firebaseapp.com/">View demo</a>
 
-<a href="https://github.com/Marcelh1983/angular-document-viewer/blob/master/changelog.md">Changes</a>
+<a href="https://github.com/Marcelh1983/document-viewer/blob/main/libs/ngx-doc-viewer/changelog.md">Changes</a>
 
 ### Install the NPM Module
 
