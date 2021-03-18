@@ -26,7 +26,7 @@ export const viewers: {
       'https://file-examples-com.github.io/uploads/2017/02/file-sample_100kB.docx',
       'https://file-examples-com.github.io/uploads/2017/02/file_example_XLSX_50.xlsx',
       `${getbaseUrl()}/assets/file_example_PPT_250kB.ppt`,
-      `${getbaseUrl()}/assets/file_example_PPTX_250kB`,
+      `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
     ],
     custom: true,
     acceptedUploadTypes: null,
