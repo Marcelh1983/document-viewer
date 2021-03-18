@@ -84,7 +84,7 @@ export const googleCheckSubscription = () => {
   let checkCount = 0;
   return {
     subscribe: (iframe: HTMLIFrameElement, interval = 3000, maxChecks = 5) => {
-      if (!iframeLoaded(iframe)) {
+      if (!iframeIsLoaded(iframe)) {
         subscription = setInterval(() => {
           checkCount++;
           if (checkCount >= maxChecks) {
@@ -107,7 +107,7 @@ export const googleCheckSubscription = () => {
   };
 };
 
-export const iframeLoaded = (iframe: HTMLIFrameElement) => {
+export const iframeIsLoaded = (iframe: HTMLIFrameElement) => {
   // its #document <html><head></head><body></body></html> when google is returning a 204
   // so if contentDocument = null then it's loaded.
   let isLoaded = false;

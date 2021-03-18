@@ -94,8 +94,9 @@ export function App() {
         url={selectedDoc}
         viewerUrl={selectedViewer.viewerUrl}
         viewer={selectedViewer.name}
+        overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
       ></DocumentViewer>
-    </div>
+    </div> 
   );
 }
 

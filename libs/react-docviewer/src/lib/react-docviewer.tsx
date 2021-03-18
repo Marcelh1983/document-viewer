@@ -4,6 +4,9 @@ import {
   googleCheckSubscription,
   getViewerDetails,
   getDocxToHtml,
+  iframeIsLoaded,
+  isLocalFile,
+  getLocation,
 } from './../../../helper';
 
 const iframeStyle = {
@@ -16,22 +19,24 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 interface Props {
   loaded?: () => void;
   url: string;
-  queryParams?: string;
-  viewerUrl?: string;
-  googleCheckInterval?: number;
-  disableContent?: 'none' | 'all' | 'poput' | 'popout-hide';
-  googleCheckContentLoaded?: boolean;
-  viewer?: viewerType;
+  queryParams: string;
+  viewerUrl: string;
+  googleCheckInterval: number;
+  googleMaxChecks: number;
+  googleCheckContentLoaded: boolean;
+  viewer: viewerType;
+  overrideLocalhost: string;
 }
 
 const defaultProps: Props = {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   loaded: () => {},
-  disableContent: 'none',
   googleCheckContentLoaded: true,
   googleCheckInterval: 3000,
   queryParams: '',
   url: '',
+  overrideLocalhost: '',
+  googleMaxChecks: 5,
   viewer: 'google',
   viewerUrl: '',
 };
@@ -42,24 +47,43 @@ interface State {
   docHtml: { __html: string };
 }
 
-export const DocumentViewer = (props: Props) => {
-  // props = { ...defaultProps, ...props };
+export const DocumentViewer = (inputProps: Partial<Props>) => {
   const iframeRef = useRef(null);
-
   const [state, setState] = useState({
     url: '',
     externalViewer: true,
     docHtml: { __html: '' },
   } as State);
   const checkIFrameSubscription = useRef<IFrameReloader>();
-
+  const props = useRef<Props>();
   useEffect(() => {
-    const details = getViewerDetails(
-      props.url,
-      props.viewer,
-      props.queryParams,
-      props.viewerUrl
+    props.current = { ...defaultProps, ...inputProps };
+    let details = getViewerDetails(
+      props.current.url,
+      props.current.viewer,
+      props.current.queryParams,
+      props.current.viewerUrl
     );
+    if (
+      details.externalViewer &&
+      props.current.overrideLocalhost &&
+      isLocalFile(props.current.url)
+    ) {
+      const loc = getLocation(props.current.url);
+      const locReplace = getLocation(props.current.overrideLocalhost);
+      const url = props.current.url.replace(
+        loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
+        locReplace.port
+          ? `${locReplace.hostname}:${locReplace.port}`
+          : locReplace.hostname
+      );
+      details = getViewerDetails(
+        url,
+        props.current.viewer,
+        props.current.queryParams,
+        props.current.viewerUrl
+      );
+    }
     setState({
       url: details.url,
       externalViewer: details.externalViewer,
@@ -70,11 +94,18 @@ export const DocumentViewer = (props: Props) => {
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
       }
-      debugger;
-      const intervalRef = googleCheckSubscription();
-      intervalRef.subscribe(iframe, props.googleCheckInterval);
-      checkIFrameSubscription.current = intervalRef;
-    } else if (props.viewer === 'mammoth') {
+
+      if (
+        props.current.viewer === 'google' &&
+        props.current.googleCheckContentLoaded === true
+      ) {
+        reloadIframe(
+          iframe,
+          props.current.googleCheckInterval,
+          props.current.googleMaxChecks
+        );
+      }
+    } else if (props.current.viewer === 'mammoth') {
       const setHtml = async () => {
         const docHtml = { __html: await getDocxToHtml(details.url) };
         setState({
@@ -85,12 +116,23 @@ export const DocumentViewer = (props: Props) => {
       };
       setHtml();
     }
-  }, [props]);
+  }, [inputProps]);
+
+  const reloadIframe = (
+    iframe: HTMLIFrameElement,
+    interval: number,
+    maxChecks: number
+  ) => {
+    checkIFrameSubscription.current = googleCheckSubscription();
+    checkIFrameSubscription.current.subscribe(iframe, interval, maxChecks);
+  };
 
   const iframeLoaded = () => {
-    if (props.loaded) props.loaded();
-    if (checkIFrameSubscription.current) {
-      checkIFrameSubscription.current.unsubscribe();
+    if (iframeRef && iframeRef.current && iframeIsLoaded(iframeRef.current)) {
+      if (props.current.loaded) props.current.loaded();
+      if (checkIFrameSubscription.current) {
+        checkIFrameSubscription.current.unsubscribe();
+      }
     }
   };
 
@@ -106,7 +148,7 @@ export const DocumentViewer = (props: Props) => {
       frameBorder="0"
       src={state.url}
     ></iframe>
-  ) : props.viewer !== 'pdf' ? (
+  ) : props.current.viewer !== 'pdf' ? (
     <div dangerouslySetInnerHTML={state.docHtml}></div>
   ) : state.url ? (
     <object data={state.url} type="application/pdf" width="100%" height="100%">

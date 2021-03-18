@@ -19,7 +19,7 @@ import {
   getLocation,
   getViewerDetails,
   googleCheckSubscription,
-  iframeLoaded,
+  iframeIsLoaded,
   isLocalFile
 } from './../../../helper';
 import {
@@ -208,7 +208,7 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
   iframeLoaded() {
     const iframe = this.iframes?.first
       ?.nativeElement as HTMLIFrameElement;
-    if (iframe && iframeLoaded(iframe)) {
+    if (iframe && iframeIsLoaded(iframe)) {
       this.loaded.emit(null);
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
