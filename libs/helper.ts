@@ -53,6 +53,21 @@ export const getbaseUrl = (): string => {
   return protocol + '//' + host;
 };
 
+
+export const getLocation = (href: string) => {
+  const match = href.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
+  return match && {
+    href,
+    protocol: match[1],
+    host: match[2],
+    hostname: match[3],
+    port: match[4],
+    pathname: match[5],
+    search: match[6],
+    hash: match[7]
+  }
+}
+
 export const getDocxToHtml = async (url: string) => {
   if (!mammoth) {
     console.error(
@@ -145,4 +160,51 @@ export const getViewerDetails = (
     url: fullUrl,
     externalViewer,
   };
+};
+
+const getBlobFromUrl = (url: string) => {
+  return new Promise<File>((resolve, reject) => {
+    let request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'blob';
+    request.onload = () => {
+      resolve(request.response as File);
+    };
+    request.onerror = reject;
+    request.send();
+  })
+}
+
+
+export const uploadToCloud = (fileUrl: string, api: string) => new Promise((resolve, reject) => {
+  getBlobFromUrl(fileUrl).then(blob => {
+    const loc = getLocation(fileUrl);
+    const name = loc.pathname.split('/')[loc.pathname.split('/').length - 1];
+    const formData = new FormData();
+    const request = new XMLHttpRequest();
+    formData.append('file', blob, name);
+    request.onreadystatechange = e => {
+      if (request.readyState === XMLHttpRequest.DONE) {
+        if (request.status === 200) {
+          resolve(request.responseText);
+        } else {
+          reject(request.responseText);
+        }
+      }
+    };
+    request.onerror = reject;
+    request.open('post', api, true);
+    request.send(formData);
+  });
+});
+
+export const isLocalFile = (file: string) => {
+  const loc = getLocation(file);
+  const hostname = loc.hostname;
+  return (
+    (['localhost', '127.0.0.1', '', '::1'].includes(hostname))
+    || (hostname.startsWith('192.168.'))
+    || (hostname.startsWith('10.0.'))
+    || (hostname.endsWith('.local'))
+  )
 };
