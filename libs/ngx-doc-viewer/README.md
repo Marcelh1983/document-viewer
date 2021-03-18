@@ -52,12 +52,13 @@ Input:
   - all: adds an overlay to the whole iframe, which makes nothing in the document clickable/selectable
   - popout: adds an overlay over googles popout button or office popout and menu which disables just this button/menu but keeps giving the possibility to select text. The popout button is still visible (for google during a few seconds) but not clickable.
   - popout-hide: see popup, instead of an transparent overlay a white one. This really hides the button but you'll see a white block while loading for the google viewer.
+ - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
 
 There are some issues loading document in the google viewer. See: https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives. If loading pdf's and Word documents, seems to work now with this hack let me know via a Github issue.
 
 - googleCheckContentLoaded = true | If true it will check by interval if the content is loaded.
 - googleCheckInterval = 3000 | The interval in milliseconds that is checked whether the iframe is loaded.
-
+- googleMaxChecks = 5 | max number of retries
 Output:
 
 - loaded: google only, notifies when iframe is loaded. Can be used to show progress while loading

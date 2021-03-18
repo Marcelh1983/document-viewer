@@ -16,9 +16,11 @@ import { EventEmitter } from '@angular/core';
 // eslint-disable-next-line @nrwl/nx/enforce-module-boundaries
 import {
   getDocxToHtml,
+  getLocation,
   getViewerDetails,
   googleCheckSubscription,
-  iframeLoaded
+  iframeLoaded,
+  isLocalFile
 } from './../../../helper';
 import {
   IFrameReloader
@@ -76,9 +78,11 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
   @Input() queryParams = '';
   @Input() viewerUrl = '';
   @Input() googleCheckInterval = 3000;
+  @Input() googleMaxChecks = 5;
   @Input() disableContent: 'none' | 'all' | 'popout' | 'popout-hide' = 'none';
   @Input() googleCheckContentLoaded = true;
   @Input() viewer: viewerType;
+  @Input() overrideLocalhost: '';
   @ViewChildren('iframe') iframes: QueryList<ElementRef>;
 
   public fullUrl: SafeResourceUrl = null;
@@ -135,14 +139,25 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
       (changes.viewerUrl &&
         changes.viewerUrl.currentValue !== changes.viewerUrl.previousValue)
     ) {
-      const viewerDetails = getViewerDetails(
+      let viewerDetails = getViewerDetails(
         this.url,
         this.configuredViewer,
         this.queryParams,
         this.viewerUrl
       );
-
       this.externalViewer = viewerDetails.externalViewer;
+      if (viewerDetails.externalViewer && this.overrideLocalhost && isLocalFile(this.url)) {
+        const loc = getLocation(this.url);
+        const locReplace = getLocation(this.overrideLocalhost);
+        this.url = this.url.replace(loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
+          locReplace.port ? `${locReplace.hostname}:${locReplace.port}` : locReplace.hostname);
+        viewerDetails = getViewerDetails(
+          this.url,
+          this.configuredViewer,
+          this.queryParams,
+          this.viewerUrl
+        );
+      }
       this.docHtml = '';
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
@@ -185,7 +200,8 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
     this.checkIFrameSubscription = googleCheckSubscription();
     this.checkIFrameSubscription.subscribe(
       iframe,
-      this.googleCheckInterval
+      this.googleCheckInterval,
+      this.googleMaxChecks
     );
   }
 

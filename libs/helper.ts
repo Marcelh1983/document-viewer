@@ -83,7 +83,7 @@ export const googleCheckSubscription = () => {
   let subscription = null;
   let checkCount = 0;
   return {
-    subscribe: (iframe: HTMLIFrameElement, interval = 3000, maxChecks = 3) => {
+    subscribe: (iframe: HTMLIFrameElement, interval = 3000, maxChecks = 5) => {
       if (!iframeLoaded(iframe)) {
         subscription = setInterval(() => {
           checkCount++;

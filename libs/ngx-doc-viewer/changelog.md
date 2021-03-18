@@ -1,5 +1,6 @@
-# 2.0.0-RC.1 (03/17/2021)
-* fix for not showing google documents (sometimes)
+# 2.0.0 (03/18/2021)
+* fix for (sometimes) not showing google documents 
+* option to override localhost in url, work-around to test assets hosted in the assets folder.
 * replaced rx interval to window interval to be independent of rx
 * created helpers that also can be used for react version
 
