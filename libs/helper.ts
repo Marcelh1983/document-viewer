@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-var
-declare var mammoth;
+declare var mammoth: any;
 import { ViewerType } from './model';
 
 export const fileToArray = (url: string): Promise<ArrayBuffer> => {
@@ -80,7 +80,7 @@ export const getDocxToHtml = async (url: string) => {
 };
 
 export const googleCheckSubscription = () => {
-  let subscription = null;
+  let subscription: any = null;
   let checkCount = 0;
   return {
     subscribe: (iframe: HTMLIFrameElement, interval = 3000, maxChecks = 5) => {
@@ -113,9 +113,9 @@ export const iframeIsLoaded = (iframe: HTMLIFrameElement) => {
   let isLoaded = false;
   try {
     if (!internetExplorer()) {
-      isLoaded = !iframe.contentDocument;
+      isLoaded = !iframe?.contentDocument;
     } else {
-      isLoaded = !iframe.contentWindow.document;
+      isLoaded = !iframe?.contentWindow?.document;
     }
   } catch {
     // ignore message Blocked a frame with origin "http://..." from accessing a cross-origin frame.
@@ -130,7 +130,7 @@ export const getViewerDetails = (
   url: string,
   configuredViewer: ViewerType = 'google',
   queryParams = '',
-  viewerUrl = null
+  viewerUrl = ''
 ) => {
   switch (configuredViewer) {
     case 'google':
@@ -141,7 +141,7 @@ export const getViewerDetails = (
       break;
     }
     case 'pdf': {
-      viewerUrl = null;
+      viewerUrl = '';
       break;
     }
   }
@@ -162,6 +162,16 @@ export const getViewerDetails = (
   };
 };
 
+export const replaceLocalUrl = (url: string, overrideLocalhost: string) => {
+  const loc = getLocation(url);
+  const locReplace = getLocation(overrideLocalhost);
+  if (loc && locReplace) {
+    return url.replace(loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
+      locReplace.port ? `${locReplace.hostname}:${locReplace.port}` : locReplace.hostname);
+  }
+  return url;
+}
+
 const getBlobFromUrl = (url: string) => {
   return new Promise<File>((resolve, reject) => {
     let request = new XMLHttpRequest();
@@ -179,7 +189,7 @@ const getBlobFromUrl = (url: string) => {
 export const uploadToCloud = (fileUrl: string, api: string) => new Promise((resolve, reject) => {
   getBlobFromUrl(fileUrl).then(blob => {
     const loc = getLocation(fileUrl);
-    const name = loc.pathname.split('/')[loc.pathname.split('/').length - 1];
+    const name = loc?.pathname ? loc?.pathname?.split('/')[loc?.pathname?.split('/').length - 1] : '';
     const formData = new FormData();
     const request = new XMLHttpRequest();
     formData.append('file', blob, name);
@@ -200,7 +210,7 @@ export const uploadToCloud = (fileUrl: string, api: string) => new Promise((reso
 
 export const isLocalFile = (file: string) => {
   const loc = getLocation(file);
-  const hostname = loc.hostname;
+  const hostname = loc?.hostname || '';
   return (
     (['localhost', '127.0.0.1', '', '::1'].includes(hostname))
     || (hostname.startsWith('192.168.'))

@@ -7,6 +7,7 @@ import {
   iframeIsLoaded,
   isLocalFile,
   getLocation,
+  replaceLocalUrl,
 } from './../../../helper';
 
 const iframeStyle = {
@@ -69,16 +70,12 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       props.current.overrideLocalhost &&
       isLocalFile(props.current.url)
     ) {
-      const loc = getLocation(props.current.url);
-      const locReplace = getLocation(props.current.overrideLocalhost);
-      const url = props.current.url.replace(
-        loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
-        locReplace.port
-          ? `${locReplace.hostname}:${locReplace.port}`
-          : locReplace.hostname
+      const newUrl = replaceLocalUrl(
+        props.current.url,
+        props.current.overrideLocalhost
       );
       details = getViewerDetails(
-        url,
+        newUrl,
         props.current.viewer,
         props.current.queryParams,
         props.current.viewerUrl
@@ -90,7 +87,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       docHtml: { __html: '' },
     });
     if (iframeRef && iframeRef.current) {
-      const iframe = iframeRef.current;
+      const iframe = iframeRef.current as unknown as HTMLIFrameElement;
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
       }
@@ -128,7 +125,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
   };
 
   const iframeLoaded = () => {
-    if (iframeRef && iframeRef.current && iframeIsLoaded(iframeRef.current)) {
+    if (props.current && iframeRef && iframeRef.current !== null && iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)) {
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
@@ -148,7 +145,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       frameBorder="0"
       src={state.url}
     ></iframe>
-  ) : props.current.viewer !== 'pdf' ? (
+  ) : props.current?.viewer !== 'pdf' ? (
     <div dangerouslySetInnerHTML={state.docHtml}></div>
   ) : state.url ? (
     <object data={state.url} type="application/pdf" width="100%" height="100%">

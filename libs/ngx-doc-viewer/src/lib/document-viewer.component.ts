@@ -20,7 +20,8 @@ import {
   getViewerDetails,
   googleCheckSubscription,
   iframeIsLoaded,
-  isLocalFile
+  isLocalFile,
+  replaceLocalUrl
 } from './../../../helper';
 import {
   IFrameReloader
@@ -147,12 +148,9 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
       );
       this.externalViewer = viewerDetails.externalViewer;
       if (viewerDetails.externalViewer && this.overrideLocalhost && isLocalFile(this.url)) {
-        const loc = getLocation(this.url);
-        const locReplace = getLocation(this.overrideLocalhost);
-        this.url = this.url.replace(loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
-          locReplace.port ? `${locReplace.hostname}:${locReplace.port}` : locReplace.hostname);
+        const newUrl = replaceLocalUrl(this.url, this.overrideLocalhost);
         viewerDetails = getViewerDetails(
-          this.url,
+          newUrl,
           this.configuredViewer,
           this.queryParams,
           this.viewerUrl
