@@ -6,7 +6,6 @@ import {
   getDocxToHtml,
   iframeIsLoaded,
   isLocalFile,
-  getLocation,
   replaceLocalUrl,
 } from './../../../helper';
 

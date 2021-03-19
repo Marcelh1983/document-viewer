@@ -1,18 +1,18 @@
-# react-docviewer
+# react-documents
 This component can be used to show several different document types in a React app.
 
 Documents that are publicly available can be shown in an iframe using the google or office document viewer.
 
 Pdf files and word document that are not publicly available can be shown using the mammoth viewer or pdf viewer by passing an objectUrl.
 
-<a href="https://react-docviewer.web.app/">View demo</a>
+<a href="https://react-documents.web.app/">View demo</a>
 
-<a href="https://github.com/Marcelh1983/document-viewer/blob/main/libs/react-docviewer/changelog.md">Changes</a>
+<a href="https://github.com/Marcelh1983/document-viewer/blob/main/libs/react-documents/changelog.md">Changes</a>
 
 ### Install the NPM Module
 
 ```sh
-npm install react-docviewer --save
+npm install react-documents --save
 ```
 
 ### Usage
@@ -20,7 +20,7 @@ npm install react-docviewer --save
 #### 1. Add DocViewer to component:
 
 ```ts
-import { DocumentViewer } from 'react-docviewer';
+import { DocumentViewer } from 'react-documents';
 ```
 
 ```tsx
@@ -43,7 +43,7 @@ Props:
 - viewer: google (default), office, mammoth, pdf or url
 - viewerUrl: only for viewer: 'url'; location of the document renderer. Only use this option for other viewers then google or office.
 - queryParams, e.g. to set language. for google: hl=[lang] e.g. hl=nl
- - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://react-docviewer.firebaseapp.com/"
+ - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://react-documents.firebaseapp.com/"
 
 There are some issues loading document in the google viewer. See: https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives. If loading pdf's and Word documents, seems to work now with this hack let me know via a Github issue.
 

@@ -7,8 +7,8 @@
     "postinstall": "node ./decorate-angular-cli.js && ngcc --properties es2015 browser module main --first-only --create-ivy-entry-points",
     "nx": "nx",
     "build:ngx-doc-viewer": "nx build ngx-doc-viewer --prod",
-    "build:react-docviewer": "rimraf ./dist/libs/react-docviewer && rollup -c",
-    "publish:react-docviewer": "npm run build:react-docviewer && npm publish ./dist/libs/react-docviewer --tag latest",
+    "build:react-documents": "rimraf ./dist/libs/react-documents && rollup -c",
+    "publish:react-documents": "npm run build:react-documents && npm publish ./dist/libs/react-documents --tag latest",
     "publish:ngx-doc-viewer": "npm run build:ngx-doc-viewer  && npm publish ./dist/libs/ngx-doc-viewer --tag latest",
     "publish-next:ngx-doc-viewer": "npm run build:ngx-doc-viewer && npm publish ./dist/libs/ngx-doc-viewer --tag next",
     "start:demo:angular": "nx serve demo-angular --port=4200",
@@ -82,6 +82,7 @@
     "ng-packagr": "^11.2.4",
     "rollup": "^2.41.2",
     "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-copy": "3.4.0",
     "prettier": "2.2.1",
     "ts-node": "~9.1.1",
     "typescript": "~4.0.3"

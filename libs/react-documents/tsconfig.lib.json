@@ -10,7 +10,7 @@
     "lib": ["es2017","DOM"],                            
     "strict": true,  
     "esModuleInterop": false,                 
-    "outDir": "../../dist/libs/react-docviewer",
+    "outDir": "../../dist/libs/react-documents",
     "declarationDir": "",
     "rootDir": "../../"
   }

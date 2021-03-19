@@ -4,9 +4,10 @@ import resolve from '@rollup/plugin-node-resolve';
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import typescript from '@rollup/plugin-typescript';
 import packageJson from './package.json';
+import copy from 'rollup-plugin-copy';
 
 export default {
-  input: './libs/react-docviewer-wrapper.ts',
+  input: './libs/react-documents-wrapper.ts',
   output: [
     {
       file: packageJson.main,
@@ -20,14 +21,17 @@ export default {
     },
   ],
   output: {
-    file: './dist/libs/react-docviewer/index.js',
+    file: './dist/libs/react-documents/index.js',
 },
   plugins: [
     peerDepsExternal(),
     resolve(),
     commonjs(),
     typescript({
-      tsconfig: './libs/react-docviewer/tsconfig.lib.json'
+      tsconfig: './libs/react-documents/tsconfig.lib.json'
+    }),
+    copy({
+      targets: [{ src: ['./libs/react-documents/package.json', './libs/react-documents/README.md'], dest: './dist/libs/react-documents/' }],
     }),
   ],
 };

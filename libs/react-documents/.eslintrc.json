@@ -6,7 +6,7 @@
     {
       "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
       "parserOptions": {
-        "project": ["libs/react-docviewer/tsconfig.*?.json"]
+        "project": ["libs/react-documents/tsconfig.*?.json"]
       },
       "rules": {}
     },

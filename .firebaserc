@@ -11,7 +11,7 @@
           "angular-doc-viewer"
         ],
         "demo-react": [
-          "react-docviewer"
+          "react-documents"
         ]
       }
     }

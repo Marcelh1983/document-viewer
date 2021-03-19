@@ -245,19 +245,19 @@
         }
       }
     },
-    "react-docviewer": {
-      "root": "libs/react-docviewer",
-      "sourceRoot": "libs/react-docviewer/src",
+    "react-documents": {
+      "root": "libs/react-documents",
+      "sourceRoot": "libs/react-documents/src",
       "projectType": "library",
       "architect": {
         "build": {
           "builder": "@nrwl/web:package",
           "outputs": ["{options.outputPath}"],
           "options": {
-            "outputPath": "dist/libs/react-docviewer",
-            "tsConfig": "libs/react-docviewer/tsconfig.lib.json",
-            "project": "libs/react-docviewer/package.json",
-            "entryFile": "libs/react-docviewer/src/index.ts",
+            "outputPath": "dist/libs/react-documents",
+            "tsConfig": "libs/react-documents/tsconfig.lib.json",
+            "project": "libs/react-documents/package.json",
+            "entryFile": "libs/react-documents/src/index.ts",
             "external": ["react", "react-dom"],
             "babelConfig": "@nrwl/react/plugins/bundle-babel",
             "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
@@ -273,7 +273,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": ["libs/react-docviewer/**/*.{ts,tsx,js,jsx}"]
+            "lintFilePatterns": ["libs/react-documents/**/*.{ts,tsx,js,jsx}"]
           }
         }
       }
