@@ -5,6 +5,8 @@ Documents that are publicly available can be shown in an iframe using the google
 
 Pdf files and word document that are not publicly available can be shown using the mammoth viewer or pdf viewer by passing an objectUrl.
 
+This package is created from [ngx-doc-viewer](https://github.com/Marcelh1983/document-viewer/blob/main/libs/ngx-doc-viewer/) which is the Angular version.
+
 <a href="https://react-documents.web.app/">View demo</a>
 
 <a href="https://github.com/Marcelh1983/document-viewer/blob/main/libs/react-documents/changelog.md">Changes</a>
@@ -121,13 +123,7 @@ NOTE: PDF's are shown in the embed tag. Browser support is not guaranteed. If yo
 
 .docx
 
-To use mammoth, also add:
-
-```sh
-npm install mammoth --save
-```
-
-and make sure mammoth.browser.min.js is loaded. Can be added in the index.html
+To use mammoth make sure mammoth.browser.min.js is loaded. Can be added in the index.html
 ```html
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.16/mammoth.browser.min.js"
