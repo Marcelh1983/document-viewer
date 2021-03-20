@@ -56,8 +56,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
   } as State);
   const checkIFrameSubscription = useRef<IFrameReloader>();
   const props = useRef<Props>();
+
   useEffect(() => {
     props.current = { ...defaultProps, ...inputProps };
+    // debugger;
     let details = getViewerDetails(
       props.current.url,
       props.current.viewer,
@@ -80,13 +82,14 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         props.current.viewerUrl
       );
     }
+    console.log(details.url);
     setState({
       url: details.url,
       externalViewer: details.externalViewer,
       docHtml: { __html: '' },
     });
     if (iframeRef && iframeRef.current) {
-      const iframe = iframeRef.current as unknown as HTMLIFrameElement;
+      const iframe = (iframeRef.current as unknown) as HTMLIFrameElement;
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
       }
@@ -97,6 +100,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       ) {
         reloadIframe(
           iframe,
+          details.url,
           props.current.googleCheckInterval,
           props.current.googleMaxChecks
         );
@@ -112,19 +116,30 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       };
       setHtml();
     }
+    return () => {
+      if (checkIFrameSubscription && checkIFrameSubscription.current) {
+        checkIFrameSubscription.current.unsubscribe();
+      }
+    };
   }, [inputProps]);
 
   const reloadIframe = (
     iframe: HTMLIFrameElement,
+    url: string,
     interval: number,
     maxChecks: number
   ) => {
     checkIFrameSubscription.current = googleCheckSubscription();
-    checkIFrameSubscription.current.subscribe(iframe, interval, maxChecks);
+    checkIFrameSubscription.current.subscribe(iframe,interval, maxChecks);
   };
 
   const iframeLoaded = () => {
-    if (props.current && iframeRef && iframeRef.current !== null && iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)) {
+    if (
+      props.current &&
+      iframeRef &&
+      iframeRef.current !== null &&
+      iframeIsLoaded((iframeRef.current as unknown) as HTMLIFrameElement)
+    ) {
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();

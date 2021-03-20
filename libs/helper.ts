@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-var
 declare var mammoth: any;
-import { ViewerType } from './model';
+import { IFrameReloader, ViewerType } from './model';
 
 export const fileToArray = (url: string): Promise<ArrayBuffer> => {
   return new Promise<ArrayBuffer>((resolve, reject) => {
@@ -79,7 +79,7 @@ export const getDocxToHtml = async (url: string) => {
   return resultObject.value;
 };
 
-export const googleCheckSubscription = () => {
+export const googleCheckSubscription = (): IFrameReloader => {
   let subscription: any = null;
   let checkCount = 0;
   return {

@@ -16,7 +16,6 @@ import { EventEmitter } from '@angular/core';
 // eslint-disable-next-line @nrwl/nx/enforce-module-boundaries
 import {
   getDocxToHtml,
-  getLocation,
   getViewerDetails,
   googleCheckSubscription,
   iframeIsLoaded,
