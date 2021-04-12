@@ -1,7 +1,6 @@
 {
   "name": "react-documents",
-  "version": "1.0.1",
-  "private": false,
+  "version": "1.0.4",
   "license": "MIT",
   "description": "React document viewer.",
   "author": {
@@ -9,9 +8,23 @@
     "email": "marcel.hoekstra@outlook.com",
     "url": "https://github.com/Marcelh1983/"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Marcelh1983/document-viewer.git"
+  },
+  "keywords": [
+    "Store",
+    "RxJs",
+    "React"
+  ],
+  "main": "index.js",
+  "types": "libs/react-documents/src/index.d.ts",
+  "bugs": {
+    "url": "https://github.com/Marcelh1983/document-viewer/issues"
+  },
+  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/libs/react-documents",
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
- },
-  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/libs/react-documents"
+  }
 }

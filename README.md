@@ -1,6 +1,6 @@
 # Documentviewer
 
-This branch is in development and an attempt to create both an Angular package and a React package.
+This component can be used to show several different document types.
 
 ## Angular
 
