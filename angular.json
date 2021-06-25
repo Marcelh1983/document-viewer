@@ -44,6 +44,32 @@
     }
   },
   "projects": {
+    "data": {
+      "projectType": "library",
+      "root": "libs/data",
+      "sourceRoot": "libs/data/src",
+      "prefix": "libtest",
+      "architect": {
+        "build": {
+          "builder": "@nrwl/angular:package",
+          "options": {
+            "tsConfig": "libs/data/tsconfig.lib.json",
+            "project": "libs/data/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "libs/data/tsconfig.lib.prod.json"
+            }
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/data/**/*.ts"]
+          }
+        }
+      }
+    },
     "demo-angular": {
       "projectType": "application",
       "root": "apps/demo-angular",
@@ -124,61 +150,6 @@
         }
       }
     },
-    "ngx-doc-viewer": {
-      "projectType": "library",
-      "root": "libs/ngx-doc-viewer",
-      "sourceRoot": "libs/ngx-doc-viewer/src",
-      "prefix": "libtest",
-      "architect": {
-        "build": {
-          "builder": "@nrwl/angular:package",
-          "options": {
-            "tsConfig": "libs/ngx-doc-viewer/tsconfig.lib.json",
-            "project": "libs/ngx-doc-viewer/ng-package.json"
-          },
-          "configurations": {
-            "production": {
-              "tsConfig": "libs/ngx-doc-viewer/tsconfig.lib.prod.json"
-            }
-          }
-        },
-        "lint": {
-          "builder": "@nrwl/linter:eslint",
-          "options": {
-            "lintFilePatterns": [
-              "libs/ngx-doc-viewer/src/**/*.ts",
-              "libs/ngx-doc-viewer/src/**/*.html"
-            ]
-          }
-        }
-      }
-    },
-    "data": {
-      "projectType": "library",
-      "root": "libs/data",
-      "sourceRoot": "libs/data/src",
-      "prefix": "libtest",
-      "architect": {
-        "build": {
-          "builder": "@nrwl/angular:package",
-          "options": {
-            "tsConfig": "libs/data/tsconfig.lib.json",
-            "project": "libs/data/ng-package.json"
-          },
-          "configurations": {
-            "production": {
-              "tsConfig": "libs/data/tsconfig.lib.prod.json"
-            }
-          }
-        },
-        "lint": {
-          "builder": "@nrwl/linter:eslint",
-          "options": {
-            "lintFilePatterns": ["libs/data/**/*.ts"]
-          }
-        }
-      }
-    },
     "demo-react": {
       "root": "apps/demo-react",
       "sourceRoot": "apps/demo-react/src",
@@ -241,6 +212,35 @@
           "builder": "@nrwl/linter:eslint",
           "options": {
             "lintFilePatterns": ["apps/demo-react/**/*.{ts,tsx,js,jsx}"]
+          }
+        }
+      }
+    },
+    "ngx-doc-viewer": {
+      "projectType": "library",
+      "root": "libs/ngx-doc-viewer",
+      "sourceRoot": "libs/ngx-doc-viewer/src",
+      "prefix": "libtest",
+      "architect": {
+        "build": {
+          "builder": "@nrwl/angular:package",
+          "options": {
+            "tsConfig": "libs/ngx-doc-viewer/tsconfig.lib.json",
+            "project": "libs/ngx-doc-viewer/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "libs/ngx-doc-viewer/tsconfig.lib.prod.json"
+            }
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": [
+              "libs/ngx-doc-viewer/src/**/*.ts",
+              "libs/ngx-doc-viewer/src/**/*.html"
+            ]
           }
         }
       }

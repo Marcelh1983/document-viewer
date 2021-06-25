@@ -15,8 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "ngx-doc-viewer": ["libs/ngx-doc-viewer/src/index.ts"],
       "@documentviewer/data": ["libs/data/src/index.ts"],
+      "ngx-doc-viewer": ["libs/ngx-doc-viewer/src/index.ts"],
       "react-documents": ["libs/react-documents/src/index.ts"]
     }
   },

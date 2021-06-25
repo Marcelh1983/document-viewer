@@ -1,25 +1,50 @@
 {
   "implicitDependencies": {
     "angular.json": "*",
-    "package.json": { "dependencies": "*", "devDependencies": "*" },
+    "package.json": {
+      "dependencies": "*",
+      "devDependencies": "*"
+    },
     "tsconfig.base.json": "*",
     "tslint.json": "*",
     ".eslintrc.json": "*",
     "nx.json": "*"
   },
-  "affected": { "defaultBase": "master" },
+  "affected": {
+    "defaultBase": "master"
+  },
   "npmScope": "documentviewer",
   "tasksRunnerOptions": {
     "default": {
       "runner": "@nrwl/workspace/tasks-runners/default",
-      "options": { "cacheableOperations": ["build", "lint", "test", "e2e"] }
+      "options": {
+        "cacheableOperations": ["build", "lint", "test", "e2e"]
+      }
     }
   },
   "projects": {
-    "demo-angular": { "tags": [] },
-    "ngx-doc-viewer": { "tags": [] },
-    "data": { "tags": [] },
-    "demo-react": { "tags": [] },
-    "react-documents": { "tags": [] }
+    "data": {
+      "tags": []
+    },
+    "demo-angular": {
+      "tags": []
+    },
+    "demo-react": {
+      "tags": []
+    },
+    "ngx-doc-viewer": {
+      "tags": []
+    },
+    "react-documents": {
+      "tags": []
+    }
+  },
+  "targetDependencies": {
+    "build": [
+      {
+        "target": "build",
+        "projects": "dependencies"
+      }
+    ]
   }
 }
