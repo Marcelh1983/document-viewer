@@ -24,7 +24,6 @@ export default {
     file: './dist/libs/react-documents/index.js',
 },
   plugins: [
-    peerDepsExternal(),
     resolve(),
     commonjs(),
     typescript({
