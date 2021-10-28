@@ -150,7 +150,7 @@ export const getViewerDetails = (
     configuredViewer === 'office' ||
     configuredViewer === 'url';
 
-  const u = url.indexOf('/') ? encodeURIComponent(url) : url;
+  const u = url?.indexOf('/') ? encodeURIComponent(url) : url;
   let fullUrl = viewerUrl ? viewerUrl.replace('%URL%', u) : url;
   if (queryParams && externalViewer && configuredViewer !== 'url') {
     const start = queryParams.startsWith('&') ? '' : '&';
