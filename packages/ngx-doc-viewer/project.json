@@ -1,0 +1,42 @@
+{
+  "projectType": "library",
+  "root": "packages/ngx-doc-viewer",
+  "sourceRoot": "packages/ngx-doc-viewer/src",
+  "prefix": "document-viewer",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/angular:package",
+      "outputs": ["dist/packages/ngx-doc-viewer"],
+      "options": {
+        "project": "packages/ngx-doc-viewer/ng-package.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "packages/ngx-doc-viewer/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "packages/ngx-doc-viewer/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/ngx-doc-viewer"],
+      "options": {
+        "jestConfig": "packages/ngx-doc-viewer/jest.config.js",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "packages/ngx-doc-viewer/src/**/*.ts",
+          "packages/ngx-doc-viewer/src/**/*.html"
+        ]
+      }
+    }
+  },
+  "tags": []
+}

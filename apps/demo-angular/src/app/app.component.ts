@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { handleFileUpload, ViewerType } from 'ngx-doc-viewer';
-import { viewers} from '@documentviewer/data';
+import { viewers } from '@document-viewer/data';
 @Component({
-  selector: 'documentviewer-root',
+  selector: 'document-viewer-root',
   templateUrl: 'app.component.html',
   styles: [],
 })
@@ -13,7 +13,8 @@ export class AppComponent {
 
   selectViewer(viewerName: ViewerType) {
     if (viewerName !== this.selectViewer.name) {
-      this.selectedViewer = this.viewers.find((v) => v.name === viewerName);
+      this.selectedViewer =
+        this.viewers.find((v) => v.name === viewerName) || this.viewers[0];
       this.selectedDoc = this.selectedViewer.docs[0];
     }
   }

@@ -1,5 +1,4 @@
-import { ViewerType } from './../../../model';
-import { getbaseUrl } from './../../../helper';
+import { ViewerType, getbaseUrl } from './../../../../packages';
 export const viewers: {
   name: ViewerType;
   docs: string[];
@@ -18,7 +17,7 @@ export const viewers: {
       `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
     ],
     custom: true,
-    acceptedUploadTypes: null,
+    acceptedUploadTypes: '',
   },
   {
     name: 'office',
@@ -29,7 +28,7 @@ export const viewers: {
       `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
     ],
     custom: true,
-    acceptedUploadTypes: null,
+    acceptedUploadTypes: '',
   },
   {
     name: 'mammoth',
@@ -51,6 +50,6 @@ export const viewers: {
       `https://docs.google.com/document/d/e/2PACX-1vRs3gemrszDinuGJCi_wO2m5XVP1q2SlRhxM8PAUYc3wu9LFsvteny7l6Rkp695-ruhfn3gWXV03yXC/pub?embedded=true`,
     ],
     custom: true,
-    acceptedUploadTypes: null,
+    acceptedUploadTypes: '',
   },
 ];

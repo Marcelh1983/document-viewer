@@ -1,19 +1,12 @@
 {
-  "implicitDependencies": {
-    "angular.json": "*",
-    "package.json": {
-      "dependencies": "*",
-      "devDependencies": "*"
-    },
-    "tsconfig.base.json": "*",
-    "tslint.json": "*",
-    ".eslintrc.json": "*",
-    "nx.json": "*"
-  },
+  "extends": "@nrwl/workspace/presets/core.json",
+  "npmScope": "document-viewer",
   "affected": {
     "defaultBase": "master"
   },
-  "npmScope": "documentviewer",
+  "cli": {
+    "defaultCollection": "@nrwl/angular"
+  },
   "tasksRunnerOptions": {
     "default": {
       "runner": "@nrwl/workspace/tasks-runners/default",
@@ -22,29 +15,34 @@
       }
     }
   },
-  "projects": {
-    "data": {
-      "tags": []
+  "generators": {
+    "@nrwl/angular:application": {
+      "style": "scss",
+      "linter": "eslint",
+      "unitTestRunner": "jest",
+      "e2eTestRunner": "cypress"
     },
-    "demo-angular": {
-      "tags": []
+    "@nrwl/angular:library": {
+      "linter": "eslint",
+      "unitTestRunner": "jest"
     },
-    "demo-react": {
-      "tags": []
+    "@nrwl/angular:component": {
+      "style": "scss"
     },
-    "ngx-doc-viewer": {
-      "tags": []
-    },
-    "react-documents": {
-      "tags": []
+    "@nrwl/react": {
+      "application": {
+        "style": "scss",
+        "linter": "eslint",
+        "babel": true
+      },
+      "component": {
+        "style": "scss"
+      },
+      "library": {
+        "style": "scss",
+        "linter": "eslint"
+      }
     }
   },
-  "targetDependencies": {
-    "build": [
-      {
-        "target": "build",
-        "projects": "dependencies"
-      }
-    ]
-  }
+  "defaultProject": "ngx-doc-viewer"
 }

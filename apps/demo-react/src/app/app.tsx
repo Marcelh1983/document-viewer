@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './app.module.scss';
-import { viewers } from '@documentviewer/data';
+import { viewers } from '@document-viewer/data';
 import { DocumentViewer, handleFileUpload, ViewerType } from 'react-documents';
 
 export function App() {
@@ -8,7 +8,7 @@ export function App() {
   const [selectedDoc, setSelectedDoc] = useState(viewers[0].docs[0]);
   const [url, setUrl] = useState('');
 
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     setUrl(e.target.value);
   };
 
@@ -20,13 +20,15 @@ export function App() {
   const selectViewer = (viewerName: ViewerType) => {
     if (viewerName !== selectViewer.name) {
       const viewer = viewers.find((v) => v.name === viewerName);
-      setSelectedViewer(viewer);
-      setSelectedDoc(viewer.docs[0]);
+      if (viewer) {
+        setSelectedViewer(viewer);
+        setSelectedDoc(viewer.docs[0]);
+      }
     }
   };
 
   const handleFiles = async (fileInput: any) => {
-    this.selectedDoc = await handleFileUpload(fileInput);
+    setSelectedDoc(await handleFileUpload(fileInput));
   };
 
   return (
@@ -96,7 +98,7 @@ export function App() {
         viewer={selectedViewer.name}
         overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
       ></DocumentViewer>
-    </div> 
+    </div>
   );
 }
 
