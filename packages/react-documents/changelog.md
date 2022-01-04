@@ -1,3 +1,8 @@
+# 1.1.0 (01/04/2022)
+* use docviewhelper to share code between ngx-doc-viewer and react-documents
+* added classname and style properties
+* use default nx build script
+
 # 1.0.1 (03/20/2021)
 * clean up google refresh subscription in useEffect()
 
