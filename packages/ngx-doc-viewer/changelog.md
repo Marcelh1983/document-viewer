@@ -1,3 +1,7 @@
+# 2.1.0 (01/04/2022)
+* upgraded dependencies
+* added dependency on docviewhelper which is a new package to be able to share code between react-documents and ngx-doc-viewer
+
 # 2.0.0 (03/18/2021)
 * fix for (sometimes) not showing google documents 
 * option to override localhost in url, work-around to test assets hosted in the assets folder.
