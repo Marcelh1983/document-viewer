@@ -4,6 +4,7 @@
     "data": "libs/data",
     "demo-angular": "apps/demo-angular",
     "demo-react": "apps/demo-react",
+    "docviewhelper": "packages/docviewhelper",
     "ngx-doc-viewer": "packages/ngx-doc-viewer",
     "react-documents": "packages/react-documents"
   }

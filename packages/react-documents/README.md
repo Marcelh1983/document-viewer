@@ -9,7 +9,7 @@ This package is created from [ngx-doc-viewer](https://github.com/Marcelh1983/doc
 
 <a href="https://react-documents.web.app/">View demo</a>
 
-<a href="https://github.com/Marcelh1983/document-viewer/blob/main/libs/react-documents/changelog.md">Changes</a>
+<a href="https://github.com/Marcelh1983/document-viewer/blob/main/packages/react-documents/changelog.md">Changes</a>
 
 ### Install the NPM Module
 

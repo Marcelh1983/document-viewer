@@ -1,8 +1,8 @@
 {
-  "name": "react-documents",
-  "version": "1.0.4",
+  "name": "docviewhelper",
+  "version": "0.0.1",
   "license": "MIT",
-  "description": "React document viewer.",
+  "description": "Helper for ngx-doc-viewer and react-documents.",
   "author": {
     "name": "Marcel Hoekstra",
     "email": "marcel.hoekstra@outlook.com",
@@ -13,21 +13,13 @@
     "url": "git+https://github.com/Marcelh1983/document-viewer.git"
   },
   "keywords": [
-    "Store",
-    "RxJs",
-    "React"
+    "ngx-doc-viewer",
+    "react-documents"
   ],
   "main": "index.js",
   "types": "packages/react-documents/src/index.d.ts",
   "bugs": {
     "url": "https://github.com/Marcelh1983/document-viewer/issues"
   },
-  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/react-documents",
-  "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
-  },
-  "dependencies": {
-    "docviewhelper": ">= 0.0.1"
-  }
+  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/docviewhelper"
 }

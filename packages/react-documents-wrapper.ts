@@ -1,1 +1,0 @@
-export * from './react-documents/src/index';

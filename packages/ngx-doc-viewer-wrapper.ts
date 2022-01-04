@@ -1,1 +1,0 @@
-export * from './ngx-doc-viewer/src/index';

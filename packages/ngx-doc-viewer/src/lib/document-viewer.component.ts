@@ -22,7 +22,7 @@ import {
   isLocalFile,
   replaceLocalUrl,
   IFrameReloader
-} from './../../../';
+} from 'docviewhelper';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';

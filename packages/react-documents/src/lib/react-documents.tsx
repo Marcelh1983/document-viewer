@@ -1,18 +1,13 @@
-import { IFrameReloader } from '../../../model';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { CSSProperties, useEffect, useRef, useState } from 'react';
 import {
+  IFrameReloader,
   googleCheckSubscription,
   getViewerDetails,
   getDocxToHtml,
   iframeIsLoaded,
   isLocalFile,
   replaceLocalUrl,
-} from './../../../helper';
-
-const iframeStyle = {
-  width: '100%',
-  height: '100%',
-};
+} from 'docviewhelper';
 
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 
@@ -26,6 +21,8 @@ interface Props {
   googleCheckContentLoaded: boolean;
   viewer: viewerType;
   overrideLocalhost: string;
+  style?: CSSProperties | undefined;
+  className?: string | undefined;
 }
 
 const defaultProps: Props = {
@@ -39,6 +36,11 @@ const defaultProps: Props = {
   googleMaxChecks: 5,
   viewer: 'google',
   viewerUrl: '',
+  style: {
+    width: '100%',
+    height: '100%',
+  },
+  className: '',
 };
 
 interface State {
@@ -59,7 +61,6 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
 
   useEffect(() => {
     props.current = { ...defaultProps, ...inputProps };
-    // debugger;
     let details = getViewerDetails(
       props.current.url,
       props.current.viewer,
@@ -89,7 +90,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       docHtml: { __html: '' },
     });
     if (iframeRef && iframeRef.current) {
-      const iframe = (iframeRef.current as unknown) as HTMLIFrameElement;
+      const iframe = iframeRef.current as unknown as HTMLIFrameElement;
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
       }
@@ -130,7 +131,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     maxChecks: number
   ) => {
     checkIFrameSubscription.current = googleCheckSubscription();
-    checkIFrameSubscription.current.subscribe(iframe,interval, maxChecks);
+    checkIFrameSubscription.current.subscribe(iframe, interval, maxChecks);
   };
 
   const iframeLoaded = () => {
@@ -138,7 +139,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       props.current &&
       iframeRef &&
       iframeRef.current !== null &&
-      iframeIsLoaded((iframeRef.current as unknown) as HTMLIFrameElement)
+      iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)
     ) {
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
@@ -149,7 +150,8 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
 
   return state.externalViewer ? (
     <iframe
-      style={iframeStyle}
+      style={props.current?.style}
+      className={props.current?.className}
       ref={iframeRef}
       onLoad={() => {
         iframeLoaded();

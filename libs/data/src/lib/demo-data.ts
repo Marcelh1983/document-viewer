@@ -1,4 +1,4 @@
-import { ViewerType, getbaseUrl } from './../../../../packages';
+import { ViewerType, getbaseUrl } from 'docviewhelper';
 export const viewers: {
   name: ViewerType;
   docs: string[];

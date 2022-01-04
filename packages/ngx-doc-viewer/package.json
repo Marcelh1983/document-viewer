@@ -9,10 +9,13 @@
     "email": "marcel.hoekstra@outlook.com",
     "url": "https://github.com/Marcelh1983/"
   },
-  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/libs/ngx-doc-viewer",
+  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/ngx-doc-viewer",
   "peerDependencies": {
     "@angular/core": ">= 10.0.0",
     "@angular/platform-browser": ">= 10.0.0",
     "@angular/common": ">= 10.0.0"
+  },
+  "dependencies": {
+    "docviewerhelper": ">= 0.0.1"
   }
 }

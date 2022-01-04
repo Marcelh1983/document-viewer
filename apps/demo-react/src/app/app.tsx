@@ -92,6 +92,7 @@ export function App() {
       </div>
 
       <DocumentViewer
+        style={{ height: '80vh', width: '100%' }}
         queryParams="hl=Nl"
         url={selectedDoc}
         viewerUrl={selectedViewer.viewerUrl}

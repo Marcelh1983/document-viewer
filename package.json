@@ -4,8 +4,10 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "ngcc --properties es2015 browser module main",
+    "build:docviewhelper": "nx build docviewhelper",
     "build:ngx-doc-viewer": "nx build ngx-doc-viewer --prod",
-    "build:react-documents": "rimraf ./dist/packages/react-documents && rollup -c",
+    "build:react-documents": "rimraf ./dist/packages/react-documents && nx build react-documents",
+    "publish:docviewhelper": "npm run build:docviewhelper && npm publish ./dist/packages/docviewhelper --tag latest",
     "publish:react-documents": "npm run build:react-documents && npm publish ./dist/packages/react-documents --tag latest",
     "publish:ngx-doc-viewer": "npm run build:ngx-doc-viewer  && npm publish ./dist/packages/ngx-doc-viewer --tag latest",
     "publish-next:ngx-doc-viewer": "npm run build:ngx-doc-viewer && npm publish ./dist/packages/ngx-doc-viewer --tag next",

@@ -2,6 +2,9 @@
   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
   "dest": "../../dist/packages/ngx-doc-viewer",
   "lib": {
-    "entryFile": "../ngx-doc-viewer-wrapper.ts"
-  }
+    "entryFile": "./src/index.ts"
+  },
+  "allowedNonPeerDependencies": [
+    "docviewerhelper"
+  ]
 }

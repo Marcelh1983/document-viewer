@@ -55,6 +55,7 @@ export const getbaseUrl = (): string => {
 
 
 export const getLocation = (href: string) => {
+  // eslint-disable-next-line no-useless-escape
   const match = href.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
   return match && {
     href,
@@ -174,7 +175,7 @@ export const replaceLocalUrl = (url: string, overrideLocalhost: string) => {
 
 const getBlobFromUrl = (url: string) => {
   return new Promise<File>((resolve, reject) => {
-    let request = new XMLHttpRequest();
+    const request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.responseType = 'blob';
     request.onload = () => {
