@@ -164,7 +164,14 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
   ) : props.current?.viewer !== 'pdf' ? (
     <div dangerouslySetInnerHTML={state.docHtml}></div>
   ) : state.url ? (
-    <object data={state.url} type="application/pdf" width="100%" height="100%">
+    <object
+      data={state.url}
+      style={props.current?.style}
+      className={props.current?.className}
+      type="application/pdf"
+      width="100%"
+      height="100%"
+    >
       <p>
         Your browser does not support PDFs.
         <a href={state.url}>Download the PDF</a>.
