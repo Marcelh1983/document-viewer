@@ -1,3 +1,6 @@
+# 2.1.1 (01/07/2022)
+* fixed pdf viewer #37
+
 # 2.1.0 (01/04/2022)
 * upgraded dependencies
 * added dependency on docviewhelper which is a new package to be able to share code between react-documents and ngx-doc-viewer
