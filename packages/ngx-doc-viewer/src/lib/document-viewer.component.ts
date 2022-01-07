@@ -21,7 +21,7 @@ import {
   iframeIsLoaded,
   isLocalFile,
   replaceLocalUrl,
-  IFrameReloader
+  IFrameReloader,
 } from 'docviewhelper';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -71,7 +71,9 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
     `,
   ],
 })
-export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewInit {
+export class NgxDocViewerComponent
+  implements OnChanges, OnDestroy, AfterViewInit
+{
   @Output() loaded: EventEmitter<void> = new EventEmitter();
   @Input() url = '';
   @Input() queryParams = '';
@@ -91,12 +93,11 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
   private checkIFrameSubscription?: IFrameReloader = undefined;
   private shouldCheckIframe = false;
 
-  constructor(private domSanitizer: DomSanitizer, private ngZone: NgZone) { }
+  constructor(private domSanitizer: DomSanitizer, private ngZone: NgZone) {}
 
   ngAfterViewInit(): void {
     if (this.shouldCheckIframe) {
-      const iframe = this.iframes?.first
-        ?.nativeElement as HTMLIFrameElement;
+      const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
       if (iframe) {
         this.shouldCheckIframe = false;
         this.reloadIframe(iframe);
@@ -132,11 +133,13 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
     }
 
     if (
-      (changes['url'] && changes['url'].currentValue !== changes['url'].previousValue) ||
+      (changes['url'] &&
+        changes['url'].currentValue !== changes['url'].previousValue) ||
       (changes['viewer'] &&
         changes['viewer'].currentValue !== changes['viewer'].previousValue) ||
       (changes['viewerUrl'] &&
-        changes['viewerUrl'].currentValue !== changes['viewerUrl'].previousValue)
+        changes['viewerUrl'].currentValue !==
+          changes['viewerUrl'].previousValue)
     ) {
       let viewerDetails = getViewerDetails(
         this.url,
@@ -145,7 +148,11 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
         this.viewerUrl
       );
       this.externalViewer = viewerDetails.externalViewer;
-      if (viewerDetails.externalViewer && this.overrideLocalhost && isLocalFile(this.url)) {
+      if (
+        viewerDetails.externalViewer &&
+        this.overrideLocalhost &&
+        isLocalFile(this.url)
+      ) {
         const newUrl = replaceLocalUrl(this.url, this.overrideLocalhost);
         viewerDetails = getViewerDetails(
           newUrl,
@@ -162,7 +169,8 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
         this.fullUrl = undefined;
       } else if (
         viewerDetails.externalViewer ||
-        this.configuredViewer === 'url'
+        this.configuredViewer === 'url' ||
+        this.configuredViewer === 'pdf'
       ) {
         this.fullUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
           viewerDetails.url
@@ -202,8 +210,7 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy, AfterViewIni
   }
 
   iframeLoaded() {
-    const iframe = this.iframes?.first
-      ?.nativeElement as HTMLIFrameElement;
+    const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
       this.loaded.emit(undefined);
       if (this.checkIFrameSubscription) {
