@@ -1,3 +1,6 @@
+# 1.1.1 (01/07/2022)
+* added classname and style properties on object tag
+
 # 1.1.0 (01/04/2022)
 * use docviewhelper to share code between ngx-doc-viewer and react-documents
 * added classname and style properties
