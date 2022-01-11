@@ -1,6 +1,6 @@
 {
   "name": "react-documents",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "license": "MIT",
   "description": "React document viewer.",
   "author": {
@@ -16,6 +16,16 @@
     "Store",
     "RxJs",
     "React"
+  ],
+  "funding": [
+    {
+      "type": "individual",
+      "url": "https://www.patreon.com/marcelh1983"
+    },
+    {
+      "type": "individual",
+      "url": "https://www.buymeacoffee.com/marcelh1983"
+    }
   ],
   "main": "index.js",
   "types": "packages/react-documents/src/index.d.ts",

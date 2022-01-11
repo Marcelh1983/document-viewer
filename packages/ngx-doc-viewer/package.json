@@ -1,6 +1,6 @@
 {
   "name": "ngx-doc-viewer",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "private": false,
   "license": "MIT",
   "description": "Angular document viewer.",
@@ -9,6 +9,16 @@
     "email": "marcel.hoekstra@outlook.com",
     "url": "https://github.com/Marcelh1983/"
   },
+  "funding": [
+    {
+      "type": "individual",
+      "url": "https://www.patreon.com/marcelh1983"
+    },
+    {
+      "type": "individual",
+      "url": "https://www.buymeacoffee.com/marcelh1983"
+    }
+  ],
   "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/ngx-doc-viewer",
   "peerDependencies": {
     "@angular/core": ">= 10.0.0",
