@@ -83,7 +83,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         props.current.viewerUrl
       );
     }
-    console.log(details.url);
+
     setState({
       url: details.url,
       externalViewer: details.externalViewer,

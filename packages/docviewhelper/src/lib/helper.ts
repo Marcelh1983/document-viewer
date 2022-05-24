@@ -24,8 +24,7 @@ export const fileToArray = (url: string): Promise<ArrayBuffer> => {
 
 const reloadIFrame = (iframe: HTMLIFrameElement) => {
   if (iframe) {
-    console.log('reloading..');
-    // eslint-disable-next-line no-self-assign
+     // eslint-disable-next-line no-self-assign
     iframe.src = iframe.src;
   }
 };
@@ -71,9 +70,7 @@ export const getLocation = (href: string) => {
 
 export const getDocxToHtml = async (url: string) => {
   if (!mammoth) {
-    console.error(
-      'Please install mammoth and make sure mammoth.browser.min.js is loaded.'
-    );
+    throw new Error("'Please install mammoth and make sure mammoth.browser.min.js is loaded.'")
   }
   const arrayBuffer = await fileToArray(url);
   const resultObject = await mammoth.convertToHtml({ arrayBuffer });
