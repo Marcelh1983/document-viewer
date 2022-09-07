@@ -1,5 +1,4 @@
 {
-  "root": "packages/data",
   "sourceRoot": "packages/data/src",
   "projectType": "library",
   "targets": {

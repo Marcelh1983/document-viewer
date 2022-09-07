@@ -1,5 +1,5 @@
 {
-  "root": "apps/demo-react",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/demo-react/src",
   "projectType": "application",
   "targets": {
@@ -37,6 +37,12 @@
           "namedChunks": false,
           "extractLicenses": true,
           "vendorChunk": false
+        },
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
         }
       }
     },
@@ -50,8 +56,12 @@
         "production": {
           "buildTarget": "demo-react:build:production",
           "hmr": false
+        },
+        "development": {
+          "buildTarget": "demo-react:build:development"
         }
-      }
+      },
+      "defaultConfiguration": "development"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -64,7 +74,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/demo-react"],
       "options": {
-        "jestConfig": "apps/demo-react/jest.config.js",
+        "jestConfig": "apps/demo-react/jest.config.ts",
         "passWithNoTests": true
       }
     }

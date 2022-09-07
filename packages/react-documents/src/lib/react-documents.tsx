@@ -7,6 +7,7 @@ import {
   iframeIsLoaded,
   isLocalFile,
   replaceLocalUrl,
+  timeout,
 } from 'docviewhelper';
 
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
@@ -47,17 +48,59 @@ interface State {
   url: string;
   externalViewer: boolean;
   docHtml: { __html: string };
+  isSwitching: boolean;
 }
 
 export const DocumentViewer = (inputProps: Partial<Props>) => {
   const iframeRef = useRef(null);
   const [state, setState] = useState({
     url: '',
+    isSwitching: false,
     externalViewer: true,
     docHtml: { __html: '' },
   } as State);
   const checkIFrameSubscription = useRef<IFrameReloader>();
   const props = useRef<Props>();
+
+  const setNewurl = async (details: {
+    url: string;
+    externalViewer: boolean;
+  }) => {
+    if (props.current) {
+      const iframe = iframeRef.current as unknown as HTMLIFrameElement;
+      if (checkIFrameSubscription && checkIFrameSubscription.current) {
+        checkIFrameSubscription.current.unsubscribe();
+      }
+      if (
+        props.current.viewer === 'google' &&
+        props.current.googleCheckContentLoaded === true
+      ) {
+        reloadIframe(
+          iframe,
+          details.url,
+          props.current.googleCheckInterval,
+          props.current.googleMaxChecks
+        );
+      }
+    }
+  };
+
+  useEffect(() => {
+    let timerRef: any;
+    if (state.isSwitching) {
+      setState((s) => {
+        return { ...s, isSwitching: false };
+      });
+      timerRef = setTimeout(() => {
+        setNewurl({ url: state.url, externalViewer: state.externalViewer });
+      }, 500);
+    }
+    return () => {
+      if (timerRef) {
+        clearTimeout(timerRef);
+      }
+    };
+  }, [state.isSwitching]);
 
   useEffect(() => {
     props.current = { ...defaultProps, ...inputProps };
@@ -83,28 +126,22 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         props.current.viewerUrl
       );
     }
-    console.log(details.url);
+
     setState({
       url: details.url,
       externalViewer: details.externalViewer,
+      isSwitching: false,
       docHtml: { __html: '' },
     });
     if (iframeRef && iframeRef.current) {
       const iframe = iframeRef.current as unknown as HTMLIFrameElement;
-      if (checkIFrameSubscription && checkIFrameSubscription.current) {
-        checkIFrameSubscription.current.unsubscribe();
-      }
-
-      if (
-        props.current.viewer === 'google' &&
-        props.current.googleCheckContentLoaded === true
-      ) {
-        reloadIframe(
-          iframe,
-          details.url,
-          props.current.googleCheckInterval,
-          props.current.googleMaxChecks
-        );
+      if (iframe.src && iframe.src !== `${window.location.protocol}//${window.location.host}/` && iframe.src !== details.url) {
+        console.log('switching');
+        // url of the iframe is changed, set is switching to true to
+        // remove the iframe and add it later with the new url;
+        setState((state) => ({ ...state, isSwitching: true }));
+      } else {
+        setNewurl(details);
       }
     } else if (props.current.viewer === 'mammoth') {
       const setHtml = async () => {
@@ -112,6 +149,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         setState({
           url: '',
           docHtml,
+          isSwitching: false,
           externalViewer: false,
         });
       };
@@ -148,7 +186,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     }
   };
 
-  return state.externalViewer ? (
+  return state.isSwitching ? null : state.externalViewer ? (
     <iframe
       style={props.current?.style}
       className={props.current?.className}

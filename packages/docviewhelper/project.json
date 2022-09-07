@@ -1,5 +1,5 @@
 {
-  "root": "packages/docviewhelper",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/docviewhelper/src",
   "projectType": "library",
   "targets": {
@@ -33,7 +33,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/docviewhelper"],
       "options": {
-        "jestConfig": "packages/docviewhelper/jest.config.js",
+        "jestConfig": "packages/docviewhelper/jest.config.ts",
         "passWithNoTests": true
       }
     }

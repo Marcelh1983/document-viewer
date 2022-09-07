@@ -7,5 +7,6 @@
     "docviewhelper": "packages/docviewhelper",
     "ngx-doc-viewer": "packages/ngx-doc-viewer",
     "react-documents": "packages/react-documents"
-  }
+  },
+  "$schema": "./node_modules/nx/schemas/workspace-schema.json"
 }

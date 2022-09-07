@@ -1,5 +1,5 @@
 {
-  "root": "packages/react-documents",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/react-documents/src",
   "projectType": "library",
   "tags": [],
@@ -35,7 +35,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/react-documents"],
       "options": {
-        "jestConfig": "packages/react-documents/jest.config.js",
+        "jestConfig": "packages/react-documents/jest.config.ts",
         "passWithNoTests": true
       }
     }

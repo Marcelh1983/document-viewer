@@ -22,11 +22,21 @@ export const fileToArray = (url: string): Promise<ArrayBuffer> => {
   });
 };
 
+export const timeout = (ms: number) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const reloadIFrame = (iframe: HTMLIFrameElement) => {
   if (iframe) {
     console.log('reloading..');
-    // eslint-disable-next-line no-self-assign
-    iframe.src = iframe.src;
+    const url = iframe.src;
+    iframe.src = 'about:blank';
+    setTimeout(() => {
+      if (iframe) {
+        iframe.src = url;
+      };
+    }, 100)
+    
   }
 };
 

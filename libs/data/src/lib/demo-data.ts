@@ -9,10 +9,10 @@ export const viewers: {
   {
     name: 'google',
     docs: [
-      'https://file-examples-com.github.io/uploads/2017/02/file-sample_100kB.docx',
-      'https://file-examples-com.github.io/uploads/2017/02/file_example_XLSX_50.xlsx',
-      'https://file-examples-com.github.io/uploads/2017/10/file_example_TIFF_1MB.tiff',
-      'https://file-examples-com.github.io/uploads/2017/10/file-example_PDF_500_kB.pdf',
+      'https://calibre-ebook.com/downloads/demos/demo.docx',
+      'https://go.microsoft.com/fwlink/?LinkID=521962',
+      'https://file-examples.com/storage/fe2356939c62607a6a1903b/2017/10/file_example_TIFF_1MB.tiff',
+      'https://file-examples.com/storage/fe2356939c62607a6a1903b/2017/10/file-example_PDF_1MB.pdf',
       `${getbaseUrl()}/assets/file_example_PPT_250kB.ppt`,
       `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
     ],

@@ -1,6 +1,6 @@
 {
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "root": "packages/ngx-doc-viewer",
   "sourceRoot": "packages/ngx-doc-viewer/src",
   "prefix": "document-viewer",
   "targets": {
@@ -24,7 +24,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/packages/ngx-doc-viewer"],
       "options": {
-        "jestConfig": "packages/ngx-doc-viewer/jest.config.js",
+        "jestConfig": "packages/ngx-doc-viewer/jest.config.ts",
         "passWithNoTests": true
       }
     },

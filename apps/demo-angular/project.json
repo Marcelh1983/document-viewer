@@ -1,6 +1,6 @@
 {
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "root": "apps/demo-angular",
   "sourceRoot": "apps/demo-angular/src",
   "prefix": "document-viewer",
   "targets": {
@@ -85,7 +85,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/demo-angular"],
       "options": {
-        "jestConfig": "apps/demo-angular/jest.config.js",
+        "jestConfig": "apps/demo-angular/jest.config.ts",
         "passWithNoTests": true
       }
     }
