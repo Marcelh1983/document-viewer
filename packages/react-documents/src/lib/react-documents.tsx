@@ -6,8 +6,7 @@ import {
   getDocxToHtml,
   iframeIsLoaded,
   isLocalFile,
-  replaceLocalUrl,
-  timeout,
+  replaceLocalUrl
 } from 'docviewhelper';
 
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';

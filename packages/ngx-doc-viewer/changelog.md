@@ -1,3 +1,6 @@
+# 2.1.3 (09/07/2022)
+* update dependencies
+
 # 2.1.1 (01/07/2022)
 * fixed pdf viewer #37
 

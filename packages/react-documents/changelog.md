@@ -1,3 +1,6 @@
+# 1.1.3 (09/07/2022)
+* updated dependencies
+
 # 1.1.1 (01/07/2022)
 * added classname and style properties on object tag
 
