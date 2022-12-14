@@ -135,7 +135,6 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     if (iframeRef && iframeRef.current) {
       const iframe = iframeRef.current as unknown as HTMLIFrameElement;
       if (iframe.src && iframe.src !== `${window.location.protocol}//${window.location.host}/` && iframe.src !== details.url) {
-        console.log('switching');
         // url of the iframe is changed, set is switching to true to
         // remove the iframe and add it later with the new url;
         setState((state) => ({ ...state, isSwitching: true }));

@@ -28,7 +28,6 @@ export const timeout = (ms: number) => {
 
 const reloadIFrame = (iframe: HTMLIFrameElement) => {
   if (iframe) {
-    console.log('reloading..');
     const url = iframe.src;
     iframe.src = 'about:blank';
     setTimeout(() => {
