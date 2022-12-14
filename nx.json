@@ -33,6 +33,7 @@
       "application": {
         "style": "scss",
         "linter": "eslint",
+        "bundler": "webpack",
         "babel": true
       },
       "component": {

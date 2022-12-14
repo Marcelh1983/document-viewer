@@ -1,10 +1,11 @@
 {
+  "name": "demo-react",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/demo-react/src",
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/web:webpack",
+      "executor": "@nrwl/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
@@ -24,6 +25,12 @@
         "webpackConfig": "@nrwl/react/plugins/webpack"
       },
       "configurations": {
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
+        },
         "production": {
           "fileReplacements": [
             {
@@ -37,31 +44,25 @@
           "namedChunks": false,
           "extractLicenses": true,
           "vendorChunk": false
-        },
-        "development": {
-          "extractLicenses": false,
-          "optimization": false,
-          "sourceMap": true,
-          "vendorChunk": true
         }
       }
     },
     "serve": {
-      "executor": "@nrwl/web:dev-server",
+      "executor": "@nrwl/webpack:dev-server",
+      "defaultConfiguration": "development",
       "options": {
         "buildTarget": "demo-react:build",
         "hmr": true
       },
       "configurations": {
+        "development": {
+          "buildTarget": "demo-react:build:development"
+        },
         "production": {
           "buildTarget": "demo-react:build:production",
           "hmr": false
-        },
-        "development": {
-          "buildTarget": "demo-react:build:development"
         }
-      },
-      "defaultConfiguration": "development"
+      }
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -72,7 +73,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/demo-react"],
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "apps/demo-react/jest.config.ts",
         "passWithNoTests": true

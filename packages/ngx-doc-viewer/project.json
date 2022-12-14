@@ -5,6 +5,7 @@
   "prefix": "document-viewer",
   "targets": {
     "build": {
+      "dependsOn": [{ "projects": "dependencies", "target": "build" }],
       "executor": "@nrwl/angular:package",
       "outputs": ["dist/packages/ngx-doc-viewer"],
       "options": {
