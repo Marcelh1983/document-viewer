@@ -1,3 +1,6 @@
+# 15.0.1 (12/14/2022)
+* update dependencies
+* removed console logs
 # 2.1.3 (09/07/2022)
 * update dependencies
 
