@@ -1,15 +1,22 @@
 {
+  "name": "ngx-doc-viewer",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "packages/ngx-doc-viewer/src",
   "prefix": "document-viewer",
   "targets": {
     "build": {
-      "dependsOn": [{ "projects": "dependencies", "target": "build" }],
-      "executor": "@nrwl/angular:package",
-      "outputs": ["dist/packages/ngx-doc-viewer"],
+      "dependsOn": [
+        {
+          "target": "build",
+          "dependencies": true
+        }
+      ],
+      "executor": "@nx/angular:package",
+      "outputs": ["{workspaceRoot}/dist/packages/ngx-doc-viewer"],
       "options": {
-        "project": "packages/ngx-doc-viewer/ng-package.json"
+        "project": "packages/ngx-doc-viewer/ng-package.json",
+        "updateBuildableProjectDepsInPackageJson": true
       },
       "configurations": {
         "production": {
@@ -22,15 +29,15 @@
       "defaultConfiguration": "production"
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/ngx-doc-viewer"],
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/ngx-doc-viewer"],
       "options": {
         "jestConfig": "packages/ngx-doc-viewer/jest.config.ts",
         "passWithNoTests": true
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": [
           "packages/ngx-doc-viewer/src/**/*.ts",

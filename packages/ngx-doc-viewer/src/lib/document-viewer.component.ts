@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { EventEmitter } from '@angular/core';
-// eslint-disable-next-line @nrwl/nx/enforce-module-boundaries
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   getDocxToHtml,
   getViewerDetails,
@@ -115,7 +115,7 @@ export class NgxDocViewerComponent
     if (
       changes &&
       changes['viewer'] &&
-      (changes['viewer'].isFirstChange ||
+      (changes['viewer'].firstChange ||
         changes['viewer'].currentValue !== changes['viewer'].previousValue)
     ) {
       if (

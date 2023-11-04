@@ -1,12 +1,18 @@
 {
+  "name": "react-documents",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/react-documents/src",
   "projectType": "library",
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nrwl/web:rollup",
-      "dependsOn": [{ "projects": "dependencies", "target": "build" }],
+      "executor": "@nx/rollup:rollup",
+      "dependsOn": [
+        {
+          "target": "build",
+          "dependencies": true
+        }
+      ],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/react-documents",
@@ -14,7 +20,7 @@
         "project": "packages/react-documents/package.json",
         "entryFile": "packages/react-documents/src/index.ts",
         "external": ["react/jsx-runtime"],
-        "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
+        "rollupConfig": "@nx/react/plugins/bundle-rollup",
         "compiler": "babel",
         "assets": [
           {
@@ -26,15 +32,15 @@
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["packages/react-documents/**/*.{ts,tsx,js,jsx}"]
       }
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/react-documents"],
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/react-documents"],
       "options": {
         "jestConfig": "packages/react-documents/jest.config.ts",
         "passWithNoTests": true

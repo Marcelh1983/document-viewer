@@ -1,6 +1,6 @@
 {
   "name": "ngx-doc-viewer",
-  "version": "15.0.1",
+  "version": "16.0.0",
   "private": false,
   "license": "MIT",
   "description": "Angular document viewer.",

@@ -1,18 +1,24 @@
 {
+  "name": "docviewhelper",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/docviewhelper/src",
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nrwl/web:rollup",
-      "dependsOn": [{ "projects": "dependencies", "target": "build" }],
+      "executor": "@nx/rollup:rollup",
+      "dependsOn": [
+        {
+          "target": "build",
+          "dependencies": true
+        }
+      ],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/docviewhelper",
         "tsConfig": "packages/docviewhelper/tsconfig.lib.json",
         "project": "packages/docviewhelper/package.json",
         "entryFile": "packages/docviewhelper/src/index.ts",
-        "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
+        "rollupConfig": "@nx/react/plugins/bundle-rollup",
         "compiler": "babel",
         "assets": [
           {
@@ -24,15 +30,15 @@
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["packages/docviewhelper/**/*.ts"]
       }
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/packages/docviewhelper"],
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/docviewhelper"],
       "options": {
         "jestConfig": "packages/docviewhelper/jest.config.ts",
         "passWithNoTests": true
