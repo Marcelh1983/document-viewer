@@ -20,6 +20,7 @@
     #iframe
     id="iframe-doc-viewer"
     frameBorder="0"
+    allow="clipboard-read; clipboard-write"
     [src]="fullUrl"
   ></iframe>
   <div class="container" *ngIf="disableContent !== 'none'">
@@ -43,6 +44,7 @@
       #iframe
       id="iframe"
       frameBorder="0"
+      allow="clipboard-read; clipboard-write"
       [src]="fullUrl"
     ></iframe>
   </div>
