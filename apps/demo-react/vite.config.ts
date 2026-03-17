@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: resolve(__dirname, '../../../dist/apps/demo-react'),
+    outDir: resolve(__dirname, '../../dist/apps/demo-react'),
     emptyOutDir: true,
   },
   server: {
