@@ -1,4 +1,4 @@
-import React, { CSSProperties, useEffect, useRef, useState } from 'react';
+import React, { CSSProperties, ReactNode, useEffect, useRef, useState } from 'react';
 import {
   IFrameReloader,
   googleCheckSubscription,
@@ -21,6 +21,7 @@ interface Props {
   googleCheckContentLoaded: boolean;
   viewer: viewerType;
   overrideLocalhost: string;
+  loadingRenderer?: ReactNode;
   style?: CSSProperties | undefined;
   className?: string | undefined;
 }
@@ -36,6 +37,7 @@ const defaultProps: Props = {
   googleMaxChecks: 5,
   viewer: 'google',
   viewerUrl: '',
+  loadingRenderer: 'Loading document...',
   style: {
     width: '100%',
     height: '100%',
@@ -48,6 +50,7 @@ interface State {
   externalViewer: boolean;
   docHtml: { __html: string };
   iframeKey: string;
+  isLoading: boolean;
 }
 
 export const DocumentViewer = (inputProps: Partial<Props>) => {
@@ -57,6 +60,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     externalViewer: true,
     docHtml: { __html: '' },
     iframeKey: '',
+    isLoading: false,
   } as State);
   const checkIFrameSubscription = useRef<IFrameReloader | undefined>(undefined);
   const props = useRef<Props | undefined>(undefined);
@@ -115,6 +119,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       externalViewer: details.externalViewer,
       docHtml: { __html: '' },
       iframeKey: `${props.current.viewer}:${details.url}`,
+      isLoading: !!props.current.url,
     });
     if (props.current.viewer === 'mammoth') {
       const setHtml = async () => {
@@ -124,6 +129,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           docHtml,
           externalViewer: false,
           iframeKey: '',
+          isLoading: false,
         });
       };
       setHtml();
@@ -163,6 +169,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       iframeRef.current !== null &&
       iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)
     ) {
+      setState((current) => ({ ...current, isLoading: false }));
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
@@ -170,35 +177,68 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     }
   };
 
-  return state.externalViewer ? (
-    <iframe
-      key={state.iframeKey}
-      style={props.current?.style}
-      className={props.current?.className}
-      ref={iframeRef}
-      onLoad={() => {
-        iframeLoaded();
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        ...props.current?.style,
       }}
-      id="iframe"
-      title="iframe"
-      frameBorder="0"
-      src={state.url}
-    ></iframe>
-  ) : props.current?.viewer !== 'pdf' ? (
-    <div dangerouslySetInnerHTML={state.docHtml}></div>
-  ) : state.url ? (
-    <object
-      data={state.url}
-      style={props.current?.style}
       className={props.current?.className}
-      type="application/pdf"
-      width="100%"
-      height="100%"
     >
-      <p>
-        Your browser does not support PDFs.
-        <a href={state.url}>Download the PDF</a>.
-      </p>
-    </object>
-  ) : null;
+      {state.isLoading ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(255, 255, 255, 0.88)',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+          }}
+        >
+          {props.current?.loadingRenderer}
+        </div>
+      ) : null}
+
+      {state.externalViewer ? (
+        <iframe
+          key={state.iframeKey}
+          style={{ width: '100%', height: '100%', display: 'block' }}
+          ref={iframeRef}
+          onLoad={() => {
+            iframeLoaded();
+          }}
+          id="iframe"
+          title="iframe"
+          frameBorder="0"
+          src={state.url}
+        ></iframe>
+      ) : props.current?.viewer !== 'pdf' ? (
+        <div dangerouslySetInnerHTML={state.docHtml}></div>
+      ) : state.url ? (
+        <object
+          data={state.url}
+          style={{ width: '100%', height: '100%', display: 'block' }}
+          onLoad={() => {
+            setState((current) => ({ ...current, isLoading: false }));
+          }}
+          type="application/pdf"
+          width="100%"
+          height="100%"
+        >
+          <p>
+            Your browser does not support PDFs.
+            <a href={state.url}>Download the PDF</a>.
+          </p>
+        </object>
+      ) : null}
+    </div>
+  );
 };

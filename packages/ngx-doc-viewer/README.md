@@ -37,6 +37,8 @@ export class AppModule {}
 ></ngx-doc-viewer>
 ```
 
+The component now shows an internal loading overlay while external viewers such as Google Docs Viewer and Office Online are initializing, so viewer switches do not appear as a blank panel.
+
 To
 
 #### API:
@@ -53,6 +55,20 @@ Input:
   - popout: adds an overlay over googles popout button or office popout and menu which disables just this button/menu but keeps giving the possibility to select text. The popout button is still visible (for google during a few seconds) but not clickable.
   - popout-hide: see popup, instead of an transparent overlay a white one. This really hides the button but you'll see a white block while loading for the google viewer.
  - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
+ - loadingText: fallback text shown in the built-in loading overlay. Defaults to `Loading document...`
+
+For custom loading markup in Angular, project an `ng-template` named `loadingContent`:
+
+```html
+<ngx-doc-viewer [url]="doc" viewer="office">
+  <ng-template #loadingContent>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="spinner"></span>
+      <span>Preparing Office preview...</span>
+    </div>
+  </ng-template>
+</ngx-doc-viewer>
+```
 
 There are some issues loading document in the google viewer. See: https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives. If loading pdf's and Word documents, seems to work now with this hack let me know via a Github issue.
 
@@ -61,7 +77,13 @@ There are some issues loading document in the google viewer. See: https://stacko
 - googleMaxChecks = 5 | max number of retries
 Output:
 
-- loaded: google only, notifies when iframe is loaded. Can be used to show progress while loading
+- loaded: emitted when the current iframe is ready. Can be used to hook into custom loading or telemetry flows.
+
+### Recent behavior improvements
+
+- External viewer switches now remount the iframe cleanly when changing between viewers such as Google and Office.
+- A built-in loading overlay is shown while remote viewers are loading.
+- Mammoth rendering now refreshes correctly when switching from an iframe-based viewer back to inline document rendering.
 
 ### File type support
 

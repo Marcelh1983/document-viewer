@@ -35,6 +35,8 @@ import { DocumentViewer } from 'react-documents';
   </DocumentViewer>
 ```
 
+The component now shows an internal loading overlay while external viewers such as Google Docs Viewer and Office Online are initializing, so viewer switches do not appear as a blank panel.
+
 To
 
 #### API:
@@ -46,6 +48,21 @@ Props:
 - viewerUrl: only for viewer: 'url'; location of the document renderer. Only use this option for other viewers then google or office.
 - queryParams, e.g. to set language. for google: hl=[lang] e.g. hl=nl
  - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://react-documents.firebaseapp.com/"
+ - loadingRenderer: text or JSX shown in the built-in loading overlay. Defaults to `Loading document...`
+
+Example with custom loading markup:
+
+```tsx
+<DocumentViewer
+  url={selectedDoc}
+  viewer={selectedViewer.name}
+  loadingRenderer={
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <span>Preparing preview...</span>
+    </div>
+  }
+/>
+```
 
 There are some issues loading document in the google viewer. See: https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives. If loading pdf's and Word documents, seems to work now with this hack let me know via a Github issue.
 
@@ -54,7 +71,13 @@ There are some issues loading document in the google viewer. See: https://stacko
 - googleMaxChecks = 5 | max number of retries
 Output:
 
-- loaded: google only, notifies when iframe is loaded. Can be used to show progress while loading
+- loaded: emitted when the current iframe is ready. Can be used to hook into custom loading or telemetry flows.
+
+### Recent behavior improvements
+
+- External viewer switches now remount the iframe cleanly when changing between viewers such as Google and Office.
+- A built-in loading overlay is shown while remote viewers are loading.
+- Mammoth rendering continues to render inline content correctly after switching away from iframe-based viewers.
 
 ### File type support
 
@@ -135,4 +158,3 @@ To use mammoth make sure mammoth.browser.min.js is loaded. Can be added in the i
 ## My other packages
 
 - rx-basic-store: simple rx store for react: [npm](https://www.npmjs.com/package/rx-basic-store) | [github](https://github.com/Marcelh1983/rx-basic-store) | [demo](https://rx-basic-store.web.app/)
-

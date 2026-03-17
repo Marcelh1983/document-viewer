@@ -1,3 +1,10 @@
+# Unreleased
+* added a built-in loading overlay while external viewers and inline renderers initialize
+* added customizable loading content support with `loadingText` and projected Angular `loadingContent` templates
+* improved iframe remounting when switching between Google and Office viewers
+* fixed Angular mammoth rendering after switching from external viewers
+* improved Angular and React demo routing so `previewer` and `doctype` are reflected in the URL
+
 # 15.0.1 (12/14/2022)
 * update dependencies
 * removed console logs

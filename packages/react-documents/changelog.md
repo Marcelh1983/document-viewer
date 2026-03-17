@@ -1,3 +1,9 @@
+# Unreleased
+* added a built-in loading overlay while external viewers and inline renderers initialize
+* added customizable loading content support through the `loadingRenderer` prop
+* improved iframe remounting when switching between Google and Office viewers
+* improved demo routing so `previewer` and `doctype` are reflected in the URL
+
 # 1.1.3 (09/07/2022)
 * updated dependencies
 

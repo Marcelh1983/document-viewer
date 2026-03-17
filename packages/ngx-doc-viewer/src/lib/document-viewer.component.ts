@@ -10,6 +10,8 @@ import {
   QueryList,
   ElementRef,
   ChangeDetectorRef,
+  ContentChild,
+  TemplateRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -40,6 +42,19 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
         width: 100%;
         height: 100%;
         position: relative;
+      }
+      .loading-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.88);
+        color: #475569;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
       }
       .overlay-popout-google {
         width: 40px;
@@ -85,6 +100,9 @@ export class NgxDocViewerComponent
   @Input() googleCheckContentLoaded = true;
   @Input() viewer: viewerType = 'google';
   @Input() overrideLocalhost = '';
+  @Input() loadingText = 'Loading document...';
+  @ContentChild('loadingContent', { read: TemplateRef })
+  loadingTemplate?: TemplateRef<unknown>;
   @ViewChildren('iframe') iframes?: QueryList<ElementRef> = undefined;
 
   public fullUrl?: SafeResourceUrl = undefined;
@@ -92,6 +110,7 @@ export class NgxDocViewerComponent
   public docHtml = '';
   public configuredViewer: viewerType = 'google';
   public showIframe = true;
+  public isLoading = false;
   private checkIFrameSubscription?: IFrameReloader = undefined;
 
   constructor(
@@ -163,11 +182,13 @@ export class NgxDocViewerComponent
       if (!this.url) {
         this.fullUrl = undefined;
         this.showIframe = false;
+        this.isLoading = false;
       } else if (
         viewerDetails.externalViewer ||
         this.configuredViewer === 'url' ||
         this.configuredViewer === 'pdf'
       ) {
+        this.isLoading = true;
         const iframeUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
           viewerDetails.url,
         );
@@ -196,11 +217,13 @@ export class NgxDocViewerComponent
           });
         }
       } else if (this.configuredViewer === 'mammoth') {
+        this.isLoading = true;
         this.fullUrl = undefined;
         this.showIframe = false;
         const docHtml = await getDocxToHtml(this.url);
         this.ngZone.run(() => {
           this.docHtml = docHtml;
+          this.isLoading = false;
           this.cdr.detectChanges();
         });
       }
@@ -219,10 +242,15 @@ export class NgxDocViewerComponent
   iframeLoaded() {
     const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
+      this.isLoading = false;
       this.loaded.emit(undefined);
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
       }
     }
+  }
+
+  objectLoaded() {
+    this.isLoading = false;
   }
 }
