@@ -11,6 +11,7 @@ import {
   ElementRef,
   AfterViewInit,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { EventEmitter } from '@angular/core';
 import {
@@ -27,6 +28,8 @@ import {
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 @Component({
   selector: 'ngx-doc-viewer',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: 'document-viewer.component.html',
   styles: [
     `

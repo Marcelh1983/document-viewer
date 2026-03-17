@@ -1,8 +1,12 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgxDocViewerModule } from 'ngx-doc-viewer';
 import { handleFileUpload, ViewerType } from 'ngx-doc-viewer';
 import { viewers } from '@document-viewer/data';
 @Component({
   selector: 'document-viewer-root',
+  standalone: true,
+  imports: [CommonModule, NgxDocViewerModule],
   templateUrl: 'app.component.html',
   styles: [],
 })
