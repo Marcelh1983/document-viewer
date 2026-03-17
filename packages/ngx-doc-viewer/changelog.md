@@ -5,6 +5,7 @@
 * added configurable retry button text and Angular `errorActions` template support for the default error overlay
 * added optional built-in secondary error action for opening or downloading the source URL
 * added configurable Office reload control and documented one-time Office auto retry behavior
+* added `googleFinalRetryDelay` to retry Google once more before surfacing the error state
 * added structured template context for Angular loading and error templates with viewer, url, phase, error text, and retry
 * added Angular lifecycle outputs for loading, error, and phase changes
 * improved iframe remounting when switching between Google and Office viewers

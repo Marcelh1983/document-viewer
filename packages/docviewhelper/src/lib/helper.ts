@@ -179,16 +179,22 @@ export const getViewerDetails = (
 export const getViewerRecoveryPlan = ({
   viewer,
   googleCheckContentLoaded = true,
+  googleFinalRetryDelay = 0,
   officeAutoRetry = false,
 }: {
   viewer: ViewerType;
   googleCheckContentLoaded?: boolean;
+  googleFinalRetryDelay?: number;
   officeAutoRetry?: boolean;
 }): ViewerRecoveryPlan => {
   const modes: ViewerRecoveryPlan['modes'] = [];
 
   if (viewer === 'google' && googleCheckContentLoaded) {
     modes.push('google-probe');
+  }
+
+  if (viewer === 'google' && googleFinalRetryDelay > 0) {
+    modes.push('google-final-retry');
   }
 
   if (viewer === 'office' && officeAutoRetry) {

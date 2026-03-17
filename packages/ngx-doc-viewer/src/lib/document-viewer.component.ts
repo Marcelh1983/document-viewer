@@ -235,6 +235,7 @@ export class NgxDocViewerComponent
   @Input() viewerUrl = '';
   @Input() googleCheckInterval = 3000;
   @Input() googleMaxChecks = 5;
+  @Input() googleFinalRetryDelay = 0;
   @Input() disableContent: 'none' | 'all' | 'popout' | 'popout-hide' = 'none';
   @Input() googleCheckContentLoaded = true;
   @Input() viewer: viewerType = 'google';
@@ -272,6 +273,9 @@ export class NgxDocViewerComponent
   private checkIFrameSubscription?: IFrameReloader = undefined;
   private loadVersion = 0;
   private externalLoadTimeoutId?: number = undefined;
+  private googleFinalRetryTimeoutId?: number = undefined;
+  private googleFinalRetriedSourceKey?: string = undefined;
+  private currentGoogleSourceKey?: string = undefined;
   private officeRetryTimeoutId?: number = undefined;
   private officeAutoRetriedSourceKey?: string = undefined;
   private currentOfficeSourceKey?: string = undefined;
@@ -285,6 +289,7 @@ export class NgxDocViewerComponent
 
   ngOnDestroy(): void {
     this.clearExternalLoadTimeout();
+    this.clearGoogleFinalRetry();
     this.clearOfficeRetry();
     if (this.checkIFrameSubscription) {
       this.checkIFrameSubscription.unsubscribe();
@@ -357,9 +362,16 @@ export class NgxDocViewerComponent
         this.officeAutoRetriedSourceKey = undefined;
       }
       this.currentOfficeSourceKey = officeSourceKey;
+      const googleSourceKey =
+        this.configuredViewer === 'google' ? viewerDetails.url : undefined;
+      if (googleSourceKey !== this.currentGoogleSourceKey) {
+        this.googleFinalRetriedSourceKey = undefined;
+      }
+      this.currentGoogleSourceKey = googleSourceKey;
       this.docHtml = '';
       this.errorText = '';
       this.failedUrl = this.url;
+      this.clearGoogleFinalRetry();
       this.clearOfficeRetry();
       this.updateTemplateContexts();
       if (this.checkIFrameSubscription) {
@@ -425,6 +437,7 @@ export class NgxDocViewerComponent
     this.retryNonce += 1;
     const retryVersion = ++this.loadVersion;
     this.clearExternalLoadTimeout();
+    this.clearGoogleFinalRetry();
     this.clearOfficeRetry();
     this.errorText = '';
     this.setRenderPhase(this.url ? 'loading' : 'idle');
@@ -488,11 +501,15 @@ export class NgxDocViewerComponent
     const recoveryPlan = getViewerRecoveryPlan({
       viewer: this.configuredViewer,
       googleCheckContentLoaded: this.googleCheckContentLoaded,
+      googleFinalRetryDelay: this.googleFinalRetryDelay,
       officeAutoRetry: this.officeAutoRetry,
     });
     for (const mode of recoveryPlan.modes) {
       if (mode === 'google-probe') {
         this.scheduleGoogleRecovery();
+      }
+      if (mode === 'google-final-retry') {
+        continue;
       }
       if (mode === 'office-auto-retry') {
         this.scheduleOfficeRetry();
@@ -524,6 +541,7 @@ export class NgxDocViewerComponent
     const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
       this.clearExternalLoadTimeout();
+      this.clearGoogleFinalRetry();
       this.clearOfficeRetry();
       this.setRenderPhase('ready');
       this.updateTemplateContexts();
@@ -536,6 +554,7 @@ export class NgxDocViewerComponent
 
   objectLoaded() {
     this.clearExternalLoadTimeout();
+    this.clearGoogleFinalRetry();
     this.clearOfficeRetry();
     this.setRenderPhase('ready');
     this.updateTemplateContexts();
@@ -580,6 +599,9 @@ export class NgxDocViewerComponent
       if (loadVersion !== this.loadVersion || this.renderPhase !== 'loading') {
         return;
       }
+      if (this.scheduleGoogleFinalRetry()) {
+        return;
+      }
       this.ngZone.run(() => {
         this.errorText = `The ${this.configuredViewer} viewer did not finish loading in time.`;
         this.setRenderPhase('error');
@@ -593,6 +615,13 @@ export class NgxDocViewerComponent
     if (this.externalLoadTimeoutId) {
       window.clearTimeout(this.externalLoadTimeoutId);
       this.externalLoadTimeoutId = undefined;
+    }
+  }
+
+  private clearGoogleFinalRetry() {
+    if (this.googleFinalRetryTimeoutId) {
+      window.clearTimeout(this.googleFinalRetryTimeoutId);
+      this.googleFinalRetryTimeoutId = undefined;
     }
   }
 
@@ -623,6 +652,34 @@ export class NgxDocViewerComponent
       this.officeAutoRetriedSourceKey = this.currentOfficeSourceKey;
       this.ngZone.run(() => this.retryLoad());
     }, this.officeRetryDelay);
+  }
+
+  private scheduleGoogleFinalRetry() {
+    const recoveryPlan = getViewerRecoveryPlan({
+      viewer: this.configuredViewer,
+      googleCheckContentLoaded: this.googleCheckContentLoaded,
+      googleFinalRetryDelay: this.googleFinalRetryDelay,
+      officeAutoRetry: this.officeAutoRetry,
+    });
+    if (
+      !recoveryPlan.modes.includes('google-final-retry') ||
+      !this.currentGoogleSourceKey ||
+      this.googleFinalRetriedSourceKey === this.currentGoogleSourceKey
+    ) {
+      return false;
+    }
+    this.clearGoogleFinalRetry();
+    this.googleFinalRetryTimeoutId = window.setTimeout(() => {
+      if (
+        !this.currentGoogleSourceKey ||
+        this.googleFinalRetriedSourceKey === this.currentGoogleSourceKey
+      ) {
+        return;
+      }
+      this.googleFinalRetriedSourceKey = this.currentGoogleSourceKey;
+      this.ngZone.run(() => this.retryLoad());
+    }, this.googleFinalRetryDelay);
+    return true;
   }
 
   get displayedErrorText() {

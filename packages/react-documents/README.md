@@ -51,6 +51,7 @@ Props:
  - loadingRenderer: text, JSX, or a render function shown in the built-in loading overlay. Defaults to `Loading document...`
  - errorRenderer: text, JSX, or a render function shown in the built-in error overlay. By default it shows the viewer, failing URL, and a retry button.
  - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`
+ - googleFinalRetryDelay: waits this many milliseconds and retries Google once more before showing the error overlay. Defaults to `0`
  - officeAutoRetry: automatically retries the Office viewer once after `officeRetryDelay`. Defaults to `false`
  - officeRetryDelay: delay in milliseconds before the one-time Office auto retry. Defaults to `3000`
  - officeReloadButtonText: text shown in the persistent Office reload button. Defaults to `↻`

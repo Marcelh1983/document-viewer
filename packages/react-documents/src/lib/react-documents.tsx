@@ -57,6 +57,7 @@ interface Props {
   viewerUrl: string;
   googleCheckInterval: number;
   googleMaxChecks: number;
+  googleFinalRetryDelay: number;
   googleCheckContentLoaded: boolean;
   viewer: viewerType;
   overrideLocalhost: string;
@@ -82,6 +83,7 @@ const defaultProps: Props = {
   onPhaseChange: () => {},
   googleCheckContentLoaded: true,
   googleCheckInterval: 3000,
+  googleFinalRetryDelay: 0,
   queryParams: '',
   url: '',
   overrideLocalhost: '',
@@ -131,6 +133,9 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
   const checkIFrameSubscription = useRef<IFrameReloader | undefined>(undefined);
   const props = useRef<Props | undefined>(undefined);
   const externalLoadTimeout = useRef<number | undefined>(undefined);
+  const googleFinalRetryTimeout = useRef<number | undefined>(undefined);
+  const googleFinalRetriedSourceKey = useRef<string | undefined>(undefined);
+  const currentGoogleSourceKey = useRef<string | undefined>(undefined);
   const officeRetryTimeout = useRef<number | undefined>(undefined);
   const officeAutoRetriedSourceKey = useRef<string | undefined>(undefined);
   const currentOfficeSourceKey = useRef<string | undefined>(undefined);
@@ -214,6 +219,42 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     }
   };
 
+  const scheduleGoogleFinalRetry = (isActive: boolean) => {
+    const recoveryPlan = getViewerRecoveryPlan({
+      viewer: props.current?.viewer ?? 'google',
+      googleCheckContentLoaded: props.current?.googleCheckContentLoaded,
+      googleFinalRetryDelay: props.current?.googleFinalRetryDelay,
+      officeAutoRetry: props.current?.officeAutoRetry,
+    });
+    if (
+      !recoveryPlan.modes.includes('google-final-retry') ||
+      !currentGoogleSourceKey.current ||
+      googleFinalRetriedSourceKey.current === currentGoogleSourceKey.current
+    ) {
+      return false;
+    }
+    if (googleFinalRetryTimeout.current) {
+      window.clearTimeout(googleFinalRetryTimeout.current);
+    }
+    googleFinalRetryTimeout.current = window.setTimeout(() => {
+      if (
+        !isActive ||
+        !currentGoogleSourceKey.current ||
+        googleFinalRetriedSourceKey.current === currentGoogleSourceKey.current
+      ) {
+        return;
+      }
+      googleFinalRetriedSourceKey.current = currentGoogleSourceKey.current;
+      setState((current) => ({
+        ...current,
+        phase: 'loading',
+        errorMessage: '',
+        retryNonce: current.retryNonce + 1,
+      }));
+    }, props.current?.googleFinalRetryDelay ?? 0);
+    return true;
+  };
+
   const scheduleViewerRecovery = (
     details: { url: string; externalViewer: boolean },
     isActive: boolean
@@ -221,11 +262,15 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     const recoveryPlan = getViewerRecoveryPlan({
       viewer: props.current?.viewer ?? 'google',
       googleCheckContentLoaded: props.current?.googleCheckContentLoaded,
+      googleFinalRetryDelay: props.current?.googleFinalRetryDelay,
       officeAutoRetry: props.current?.officeAutoRetry,
     });
     for (const mode of recoveryPlan.modes) {
       if (mode === 'google-probe') {
         scheduleGoogleRecovery(details);
+      }
+      if (mode === 'google-final-retry') {
+        continue;
       }
       if (mode === 'office-auto-retry') {
         scheduleOfficeRecovery(isActive);
@@ -264,6 +309,12 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       officeAutoRetriedSourceKey.current = undefined;
     }
     currentOfficeSourceKey.current = officeSourceKey;
+    const googleSourceKey =
+      props.current.viewer === 'google' ? details.url : undefined;
+    if (googleSourceKey !== currentGoogleSourceKey.current) {
+      googleFinalRetriedSourceKey.current = undefined;
+    }
+    currentGoogleSourceKey.current = googleSourceKey;
 
     setState({
       phase: props.current.url ? 'loading' : 'idle',
@@ -324,6 +375,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           window.clearTimeout(externalLoadTimeout.current);
           externalLoadTimeout.current = undefined;
         }
+        if (googleFinalRetryTimeout.current) {
+          window.clearTimeout(googleFinalRetryTimeout.current);
+          googleFinalRetryTimeout.current = undefined;
+        }
         if (checkIFrameSubscription && checkIFrameSubscription.current) {
           checkIFrameSubscription.current.unsubscribe();
         }
@@ -340,6 +395,9 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           : 15000;
       externalLoadTimeout.current = window.setTimeout(() => {
         if (!isActive) {
+          return;
+        }
+        if (scheduleGoogleFinalRetry(isActive)) {
           return;
         }
         setState((current) =>
@@ -360,6 +418,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       if (externalLoadTimeout.current) {
         window.clearTimeout(externalLoadTimeout.current);
         externalLoadTimeout.current = undefined;
+      }
+      if (googleFinalRetryTimeout.current) {
+        window.clearTimeout(googleFinalRetryTimeout.current);
+        googleFinalRetryTimeout.current = undefined;
       }
       if (officeRetryTimeout.current) {
         window.clearTimeout(officeRetryTimeout.current);
@@ -391,6 +453,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       if (externalLoadTimeout.current) {
         window.clearTimeout(externalLoadTimeout.current);
         externalLoadTimeout.current = undefined;
+      }
+      if (googleFinalRetryTimeout.current) {
+        window.clearTimeout(googleFinalRetryTimeout.current);
+        googleFinalRetryTimeout.current = undefined;
       }
       if (officeRetryTimeout.current) {
         window.clearTimeout(officeRetryTimeout.current);

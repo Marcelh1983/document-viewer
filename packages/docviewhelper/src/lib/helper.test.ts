@@ -19,6 +19,15 @@ describe('helper', () => {
     ).toEqual(['google-probe']);
   });
 
+  it('returns a final google retry mode when a delay is configured', () => {
+    expect(
+      getViewerRecoveryPlan({
+        viewer: 'google',
+        googleFinalRetryDelay: 4000,
+      }).modes
+    ).toEqual(['google-probe', 'google-final-retry']);
+  });
+
   it('returns an office recovery plan when auto retry is enabled', () => {
     expect(
       getViewerRecoveryPlan({
