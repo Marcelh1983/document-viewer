@@ -28,6 +28,7 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
+type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
 @Component({
   selector: 'ngx-doc-viewer',
   standalone: true,
@@ -43,6 +44,78 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
         height: 100%;
         position: relative;
       }
+      .inline-document-shell {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background:
+          linear-gradient(180deg, #eef2f7 0%, #f8fafc 100%);
+        padding: 24px;
+      }
+      .inline-document-page {
+        max-width: 900px;
+        min-height: 100%;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid #dbe4f0;
+        border-radius: 18px;
+        box-shadow:
+          0 18px 40px -24px rgba(15, 23, 42, 0.3),
+          0 6px 18px -10px rgba(15, 23, 42, 0.18);
+        padding: 40px 48px;
+      }
+      .inline-document-page,
+      .inline-document-page * {
+        box-sizing: border-box;
+      }
+      .inline-document-page {
+        color: #1e293b;
+        font-family:
+          Georgia, Cambria, 'Times New Roman', Times, serif;
+        font-size: 18px;
+        line-height: 1.7;
+      }
+      .inline-document-page p,
+      .inline-document-page ul,
+      .inline-document-page ol,
+      .inline-document-page blockquote,
+      .inline-document-page table {
+        margin: 0 0 1.1em;
+      }
+      .inline-document-page h1,
+      .inline-document-page h2,
+      .inline-document-page h3,
+      .inline-document-page h4,
+      .inline-document-page h5,
+      .inline-document-page h6 {
+        margin: 1.4em 0 0.65em;
+        color: #0f172a;
+        line-height: 1.25;
+      }
+      .inline-document-page h1:first-child,
+      .inline-document-page h2:first-child,
+      .inline-document-page h3:first-child,
+      .inline-document-page p:first-child {
+        margin-top: 0;
+      }
+      .inline-document-page table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .inline-document-page td,
+      .inline-document-page th {
+        padding: 6px 10px;
+        vertical-align: top;
+      }
+      .inline-document-page img {
+        max-width: 100%;
+        height: auto;
+      }
+      .inline-document-page hr {
+        border: 0;
+        border-top: 1px solid #dbe4f0;
+        margin: 1.5em 0;
+      }
       .loading-overlay {
         position: absolute;
         inset: 0;
@@ -55,6 +128,23 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
         font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.02em;
+        text-align: center;
+        padding: 16px;
+      }
+      .error-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.94);
+        color: #991b1b;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-align: center;
+        padding: 16px;
       }
       .overlay-popout-google {
         width: 40px;
@@ -84,6 +174,15 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
         width: 100%;
         height: 100%;
       }
+      @media (max-width: 768px) {
+        .inline-document-shell {
+          padding: 12px;
+        }
+        .inline-document-page {
+          border-radius: 12px;
+          padding: 22px 18px;
+        }
+      }
     `,
   ],
 })
@@ -110,8 +209,10 @@ export class NgxDocViewerComponent
   public docHtml = '';
   public configuredViewer: viewerType = 'google';
   public showIframe = true;
-  public isLoading = false;
+  public renderPhase: ViewerRenderPhase = 'idle';
+  public errorText = '';
   private checkIFrameSubscription?: IFrameReloader = undefined;
+  private loadVersion = 0;
 
   constructor(
     private domSanitizer: DomSanitizer,
@@ -161,6 +262,7 @@ export class NgxDocViewerComponent
         this.queryParams,
         this.viewerUrl,
       );
+      const loadVersion = ++this.loadVersion;
       this.externalViewer = viewerDetails.externalViewer;
       if (
         viewerDetails.externalViewer &&
@@ -176,19 +278,21 @@ export class NgxDocViewerComponent
         );
       }
       this.docHtml = '';
+      this.errorText = '';
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
       }
       if (!this.url) {
         this.fullUrl = undefined;
         this.showIframe = false;
-        this.isLoading = false;
+        this.externalViewer = false;
+        this.renderPhase = 'idle';
       } else if (
         viewerDetails.externalViewer ||
         this.configuredViewer === 'url' ||
         this.configuredViewer === 'pdf'
       ) {
-        this.isLoading = true;
+        this.renderPhase = 'loading';
         const iframeUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
           viewerDetails.url,
         );
@@ -217,15 +321,31 @@ export class NgxDocViewerComponent
           });
         }
       } else if (this.configuredViewer === 'mammoth') {
-        this.isLoading = true;
+        this.renderPhase = 'loading';
+        this.externalViewer = false;
         this.fullUrl = undefined;
         this.showIframe = false;
-        const docHtml = await getDocxToHtml(this.url);
-        this.ngZone.run(() => {
-          this.docHtml = docHtml;
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        });
+        try {
+          const docHtml = await getDocxToHtml(this.url);
+          if (loadVersion !== this.loadVersion) {
+            return;
+          }
+          this.ngZone.run(() => {
+            this.docHtml = docHtml;
+            this.renderPhase = 'ready';
+            this.cdr.detectChanges();
+          });
+        } catch (error) {
+          if (loadVersion !== this.loadVersion) {
+            return;
+          }
+          this.ngZone.run(() => {
+            this.errorText =
+              error instanceof Error ? error.message : 'Unable to load document.';
+            this.renderPhase = 'error';
+            this.cdr.detectChanges();
+          });
+        }
       }
     }
   }
@@ -242,7 +362,7 @@ export class NgxDocViewerComponent
   iframeLoaded() {
     const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
-      this.isLoading = false;
+      this.renderPhase = 'ready';
       this.loaded.emit(undefined);
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
@@ -251,6 +371,6 @@ export class NgxDocViewerComponent
   }
 
   objectLoaded() {
-    this.isLoading = false;
+    this.renderPhase = 'ready';
   }
 }

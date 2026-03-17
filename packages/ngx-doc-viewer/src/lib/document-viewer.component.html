@@ -1,13 +1,18 @@
 <div class="container">
-  <div *ngIf="isLoading" class="loading-overlay">
+  <div *ngIf="renderPhase === 'loading'" class="loading-overlay">
     <ng-container *ngIf="loadingTemplate; else defaultLoadingTemplate">
       <ng-container *ngTemplateOutlet="loadingTemplate"></ng-container>
     </ng-container>
     <ng-template #defaultLoadingTemplate>{{ loadingText }}</ng-template>
   </div>
+  <div *ngIf="renderPhase === 'error'" class="error-overlay">
+    {{ errorText || 'Unable to load document.' }}
+  </div>
 
   <ng-container *ngIf="!externalViewer">
-    <div *ngIf="configuredViewer !== 'pdf'" [innerHTML]="docHtml"></div>
+    <div *ngIf="configuredViewer !== 'pdf'" class="inline-document-shell">
+      <div class="inline-document-page" [innerHTML]="docHtml"></div>
+    </div>
     <object
       (load)="objectLoaded()"
       *ngIf="fullUrl && configuredViewer === 'pdf'"
