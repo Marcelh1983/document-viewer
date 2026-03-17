@@ -56,15 +56,51 @@ Input:
   - popout-hide: see popup, instead of an transparent overlay a white one. This really hides the button but you'll see a white block while loading for the google viewer.
  - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
  - loadingText: fallback text shown in the built-in loading overlay. Defaults to `Loading document...`
+ - errorTextOverride: fallback text shown in the built-in error overlay. Defaults to the runtime error message.
+ - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`
 
-For custom loading markup in Angular, project an `ng-template` named `loadingContent`:
+For custom loading markup in Angular, project an `ng-template` named `loadingContent`.
+The template receives `$implicit` and `state` with:
+- `viewer`
+- `url`
+- `phase`
+- `errorText`
+- `retry()`
 
 ```html
 <ngx-doc-viewer [url]="doc" viewer="office">
-  <ng-template #loadingContent>
+  <ng-template #loadingContent let-state>
     <div style="display:flex;gap:8px;align-items:center;">
       <span class="spinner"></span>
-      <span>Preparing Office preview...</span>
+      <span>Preparing {{ state.viewer }} preview...</span>
+    </div>
+  </ng-template>
+</ngx-doc-viewer>
+```
+
+For custom error markup in Angular, project an `ng-template` named `errorContent`.
+It receives the same context and can call `retry()` directly:
+
+```html
+<ngx-doc-viewer [url]="doc" viewer="office">
+  <ng-template #errorContent let-state>
+    <div style="text-align:center;">
+      <div>Preview unavailable for {{ state.viewer }}.</div>
+      <div>{{ state.url }}</div>
+      <button type="button" (click)="state.retry()">Retry</button>
+    </div>
+  </ng-template>
+</ngx-doc-viewer>
+```
+
+If you want to keep the default error layout but replace just the actions area, project an `ng-template` named `errorActions`:
+
+```html
+<ngx-doc-viewer [url]="doc" viewer="office" retryButtonText="Try again">
+  <ng-template #errorActions let-state>
+    <div style="margin-top: 14px; display: flex; gap: 8px; justify-content: center;">
+      <button type="button" (click)="state.retry()">Try again</button>
+      <a [href]="state.url" target="_blank" rel="noreferrer">Open source</a>
     </div>
   </ng-template>
 </ngx-doc-viewer>

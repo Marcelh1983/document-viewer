@@ -1,6 +1,9 @@
 # Unreleased
 * added a built-in loading overlay while external viewers and inline renderers initialize
 * added customizable loading content support through the `loadingRenderer` prop
+* added customizable error content support through the `errorRenderer` prop
+* added configurable retry button text for the default error overlay
+* added structured render context for loading and error renderers with viewer, url, phase, error text, and retry
 * improved iframe remounting when switching between Google and Office viewers
 * improved demo routing so `previewer` and `doctype` are reflected in the URL
 

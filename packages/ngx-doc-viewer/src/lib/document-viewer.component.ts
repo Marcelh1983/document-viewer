@@ -29,6 +29,17 @@ import {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
+interface ViewerTemplateContext {
+  $implicit: ViewerStateContext;
+  state: ViewerStateContext;
+}
+export interface ViewerStateContext {
+  viewer: viewerType;
+  url: string;
+  phase: ViewerRenderPhase;
+  errorText: string;
+  retry: () => void;
+}
 @Component({
   selector: 'ngx-doc-viewer',
   standalone: true,
@@ -190,6 +201,9 @@ export class NgxDocViewerComponent
   implements OnChanges, OnDestroy
 {
   @Output() loaded: EventEmitter<void> = new EventEmitter();
+  @Output() loading: EventEmitter<ViewerStateContext> = new EventEmitter();
+  @Output() error: EventEmitter<ViewerStateContext> = new EventEmitter();
+  @Output() phaseChange: EventEmitter<ViewerStateContext> = new EventEmitter();
   @Input() url = '';
   @Input() queryParams = '';
   @Input() viewerUrl = '';
@@ -200,8 +214,14 @@ export class NgxDocViewerComponent
   @Input() viewer: viewerType = 'google';
   @Input() overrideLocalhost = '';
   @Input() loadingText = 'Loading document...';
+  @Input() errorTextOverride = '';
+  @Input() retryButtonText = 'Retry';
   @ContentChild('loadingContent', { read: TemplateRef })
   loadingTemplate?: TemplateRef<unknown>;
+  @ContentChild('errorContent', { read: TemplateRef })
+  errorTemplate?: TemplateRef<unknown>;
+  @ContentChild('errorActions', { read: TemplateRef })
+  errorActionsTemplate?: TemplateRef<unknown>;
   @ViewChildren('iframe') iframes?: QueryList<ElementRef> = undefined;
 
   public fullUrl?: SafeResourceUrl = undefined;
@@ -211,8 +231,14 @@ export class NgxDocViewerComponent
   public showIframe = true;
   public renderPhase: ViewerRenderPhase = 'idle';
   public errorText = '';
+  public failedUrl = '';
+  public retryNonce = 0;
+  public loadingTemplateContext: ViewerTemplateContext = this.createTemplateContext();
+  public errorTemplateContext: ViewerTemplateContext = this.createTemplateContext();
   private checkIFrameSubscription?: IFrameReloader = undefined;
   private loadVersion = 0;
+  private externalLoadTimeoutId?: number = undefined;
+  private lastEmittedPhase?: ViewerRenderPhase = undefined;
 
   constructor(
     private domSanitizer: DomSanitizer,
@@ -221,12 +247,20 @@ export class NgxDocViewerComponent
   ) {}
 
   ngOnDestroy(): void {
+    this.clearExternalLoadTimeout();
     if (this.checkIFrameSubscription) {
       this.checkIFrameSubscription.unsubscribe();
     }
   }
 
   async ngOnChanges(changes: SimpleChanges): Promise<void> {
+    if (
+      changes &&
+      changes['retryNonce'] &&
+      changes['retryNonce'].firstChange
+    ) {
+      return;
+    }
     if (
       changes &&
       changes['viewer'] &&
@@ -245,6 +279,7 @@ export class NgxDocViewerComponent
         );
       }
       this.configuredViewer = this.viewer;
+      this.updateTemplateContexts();
     }
 
     if (
@@ -263,6 +298,7 @@ export class NgxDocViewerComponent
         this.viewerUrl,
       );
       const loadVersion = ++this.loadVersion;
+      this.clearExternalLoadTimeout();
       this.externalViewer = viewerDetails.externalViewer;
       if (
         viewerDetails.externalViewer &&
@@ -279,6 +315,8 @@ export class NgxDocViewerComponent
       }
       this.docHtml = '';
       this.errorText = '';
+      this.failedUrl = this.url;
+      this.updateTemplateContexts();
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
       }
@@ -286,13 +324,14 @@ export class NgxDocViewerComponent
         this.fullUrl = undefined;
         this.showIframe = false;
         this.externalViewer = false;
-        this.renderPhase = 'idle';
+        this.setRenderPhase('idle');
+        this.updateTemplateContexts();
       } else if (
         viewerDetails.externalViewer ||
         this.configuredViewer === 'url' ||
         this.configuredViewer === 'pdf'
       ) {
-        this.renderPhase = 'loading';
+        this.setRenderPhase('loading');
         const iframeUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
           viewerDetails.url,
         );
@@ -301,6 +340,8 @@ export class NgxDocViewerComponent
         this.cdr.detectChanges();
         this.fullUrl = iframeUrl;
         this.showIframe = true;
+        this.updateTemplateContexts();
+        this.scheduleExternalLoadTimeout(loadVersion);
         // see:
         // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
         // hack to reload iframe if it's not loaded.
@@ -321,7 +362,7 @@ export class NgxDocViewerComponent
           });
         }
       } else if (this.configuredViewer === 'mammoth') {
-        this.renderPhase = 'loading';
+        this.setRenderPhase('loading');
         this.externalViewer = false;
         this.fullUrl = undefined;
         this.showIframe = false;
@@ -332,7 +373,8 @@ export class NgxDocViewerComponent
           }
           this.ngZone.run(() => {
             this.docHtml = docHtml;
-            this.renderPhase = 'ready';
+            this.setRenderPhase('ready');
+            this.updateTemplateContexts();
             this.cdr.detectChanges();
           });
         } catch (error) {
@@ -342,11 +384,64 @@ export class NgxDocViewerComponent
           this.ngZone.run(() => {
             this.errorText =
               error instanceof Error ? error.message : 'Unable to load document.';
-            this.renderPhase = 'error';
+            this.setRenderPhase('error');
+            this.updateTemplateContexts();
             this.cdr.detectChanges();
           });
         }
       }
+    }
+  }
+
+  retryLoad() {
+    this.retryNonce += 1;
+    const retryVersion = ++this.loadVersion;
+    this.clearExternalLoadTimeout();
+    this.errorText = '';
+    this.setRenderPhase(this.url ? 'loading' : 'idle');
+    this.updateTemplateContexts();
+
+    if (!this.url) {
+      return;
+    }
+
+    if (this.configuredViewer === 'mammoth') {
+      this.docHtml = '';
+      void this.reloadMammoth(retryVersion);
+      return;
+    }
+
+    if (
+      this.configuredViewer === 'google' ||
+      this.configuredViewer === 'office' ||
+      this.configuredViewer === 'url' ||
+      this.configuredViewer === 'pdf'
+    ) {
+      const details = getViewerDetails(
+        this.url,
+        this.configuredViewer,
+        this.queryParams,
+        this.viewerUrl,
+      );
+      const finalUrl =
+        details.externalViewer && this.overrideLocalhost && isLocalFile(this.url)
+          ? getViewerDetails(
+              replaceLocalUrl(this.url, this.overrideLocalhost),
+              this.configuredViewer,
+              this.queryParams,
+              this.viewerUrl,
+            ).url
+          : details.url;
+
+      this.fullUrl = undefined;
+      this.showIframe = false;
+      this.cdr.detectChanges();
+      this.fullUrl =
+        this.domSanitizer.bypassSecurityTrustResourceUrl(finalUrl);
+      this.showIframe = true;
+      this.scheduleExternalLoadTimeout(retryVersion);
+      this.updateTemplateContexts();
+      this.cdr.detectChanges();
     }
   }
 
@@ -362,7 +457,9 @@ export class NgxDocViewerComponent
   iframeLoaded() {
     const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
-      this.renderPhase = 'ready';
+      this.clearExternalLoadTimeout();
+      this.setRenderPhase('ready');
+      this.updateTemplateContexts();
       this.loaded.emit(undefined);
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
@@ -371,6 +468,108 @@ export class NgxDocViewerComponent
   }
 
   objectLoaded() {
-    this.renderPhase = 'ready';
+    this.clearExternalLoadTimeout();
+    this.setRenderPhase('ready');
+    this.updateTemplateContexts();
+  }
+
+  private async reloadMammoth(loadVersion: number) {
+    this.externalViewer = false;
+    this.fullUrl = undefined;
+    this.showIframe = false;
+    try {
+      const docHtml = await getDocxToHtml(this.url);
+      if (loadVersion !== this.loadVersion) {
+        return;
+      }
+      this.ngZone.run(() => {
+        this.docHtml = docHtml;
+        this.setRenderPhase('ready');
+        this.updateTemplateContexts();
+        this.cdr.detectChanges();
+      });
+    } catch (error) {
+      if (loadVersion !== this.loadVersion) {
+        return;
+      }
+      this.ngZone.run(() => {
+        this.errorText =
+          error instanceof Error ? error.message : 'Unable to load document.';
+        this.setRenderPhase('error');
+        this.updateTemplateContexts();
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  private scheduleExternalLoadTimeout(loadVersion: number) {
+    this.clearExternalLoadTimeout();
+    const timeoutMs =
+      this.configuredViewer === 'google'
+        ? Math.max(this.googleCheckInterval * this.googleMaxChecks + 2000, 15000)
+        : 15000;
+    this.externalLoadTimeoutId = window.setTimeout(() => {
+      if (loadVersion !== this.loadVersion || this.renderPhase !== 'loading') {
+        return;
+      }
+      this.ngZone.run(() => {
+        this.errorText = `The ${this.configuredViewer} viewer did not finish loading in time.`;
+        this.setRenderPhase('error');
+        this.updateTemplateContexts();
+        this.cdr.detectChanges();
+      });
+    }, timeoutMs);
+  }
+
+  private clearExternalLoadTimeout() {
+    if (this.externalLoadTimeoutId) {
+      window.clearTimeout(this.externalLoadTimeoutId);
+      this.externalLoadTimeoutId = undefined;
+    }
+  }
+
+  get displayedErrorText() {
+    return this.errorTextOverride || this.errorText || 'Unable to load document.';
+  }
+
+  private updateTemplateContexts() {
+    const state = this.createStateContext();
+    this.loadingTemplateContext = { $implicit: state, state };
+    this.errorTemplateContext = { $implicit: state, state };
+  }
+
+  private createTemplateContext(): ViewerTemplateContext {
+    const state = this.createStateContext();
+    return { $implicit: state, state };
+  }
+
+  private createStateContext(): ViewerStateContext {
+    return {
+      viewer: this.configuredViewer,
+      url: this.failedUrl || this.url,
+      phase: this.renderPhase,
+      errorText: this.displayedErrorText,
+      retry: () => this.retryLoad(),
+    };
+  }
+
+  private setRenderPhase(phase: ViewerRenderPhase) {
+    this.renderPhase = phase;
+    this.emitLifecycleIfNeeded();
+  }
+
+  private emitLifecycleIfNeeded() {
+    if (this.lastEmittedPhase === this.renderPhase) {
+      return;
+    }
+    this.lastEmittedPhase = this.renderPhase;
+    const state = this.createStateContext();
+    this.phaseChange.emit(state);
+    if (this.renderPhase === 'loading') {
+      this.loading.emit(state);
+    }
+    if (this.renderPhase === 'error') {
+      this.error.emit(state);
+    }
   }
 }

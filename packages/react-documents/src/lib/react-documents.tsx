@@ -12,6 +12,14 @@ import {
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
 type ViewerContentKind = 'empty' | 'external' | 'inline' | 'pdf';
+interface ViewerRendererContext {
+  viewer: viewerType;
+  url: string;
+  phase: ViewerRenderPhase;
+  errorText: string;
+  retry: () => void;
+}
+export type DocumentViewerEvent = ViewerRendererContext;
 
 const inlineDocumentShellStyle: CSSProperties = {
   width: '100%',
@@ -39,6 +47,9 @@ const inlineDocumentPageStyle: CSSProperties = {
 
 interface Props {
   loaded?: () => void;
+  onLoading?: (event: DocumentViewerEvent) => void;
+  onError?: (event: DocumentViewerEvent) => void;
+  onPhaseChange?: (event: DocumentViewerEvent) => void;
   url: string;
   queryParams: string;
   viewerUrl: string;
@@ -47,7 +58,9 @@ interface Props {
   googleCheckContentLoaded: boolean;
   viewer: viewerType;
   overrideLocalhost: string;
-  loadingRenderer?: ReactNode;
+  loadingRenderer?: ReactNode | ((context: ViewerRendererContext) => ReactNode);
+  errorRenderer?: ReactNode | ((context: ViewerRendererContext) => ReactNode);
+  retryButtonText?: string;
   style?: CSSProperties | undefined;
   className?: string | undefined;
 }
@@ -55,6 +68,9 @@ interface Props {
 const defaultProps: Props = {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   loaded: () => {},
+  onLoading: () => {},
+  onError: () => {},
+  onPhaseChange: () => {},
   googleCheckContentLoaded: true,
   googleCheckInterval: 3000,
   queryParams: '',
@@ -64,6 +80,8 @@ const defaultProps: Props = {
   viewer: 'google',
   viewerUrl: '',
   loadingRenderer: 'Loading document...',
+  errorRenderer: undefined,
+  retryButtonText: 'Retry',
   style: {
     width: '100%',
     height: '100%',
@@ -78,6 +96,8 @@ interface State {
   docHtml: { __html: string };
   iframeKey: string;
   errorMessage: string;
+  failedUrl: string;
+  retryNonce: number;
 }
 
 export const DocumentViewer = (inputProps: Partial<Props>) => {
@@ -89,9 +109,13 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     docHtml: { __html: '' },
     iframeKey: '',
     errorMessage: '',
+    failedUrl: '',
+    retryNonce: 0,
   } as State);
   const checkIFrameSubscription = useRef<IFrameReloader | undefined>(undefined);
   const props = useRef<Props | undefined>(undefined);
+  const externalLoadTimeout = useRef<number | undefined>(undefined);
+  const lastEmittedPhase = useRef<ViewerRenderPhase | undefined>(undefined);
 
   const setNewUrl = async (details: {
     url: string;
@@ -156,8 +180,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         : 'empty',
       url: details.url,
       docHtml: { __html: '' },
-      iframeKey: `${props.current.viewer}:${details.url}`,
+      iframeKey: `${props.current.viewer}:${details.url}:${state.retryNonce}`,
       errorMessage: '',
+      failedUrl: props.current.url,
+      retryNonce: state.retryNonce,
     });
     if (props.current.viewer === 'mammoth') {
       const setHtml = async () => {
@@ -173,6 +199,8 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
             docHtml,
             iframeKey: '',
             errorMessage: '',
+            failedUrl: props.current?.url ?? '',
+            retryNonce: state.retryNonce,
           });
         } catch (error) {
           if (!isActive) {
@@ -186,12 +214,18 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
             iframeKey: '',
             errorMessage:
               error instanceof Error ? error.message : 'Unable to load document.',
+            failedUrl: props.current?.url ?? '',
+            retryNonce: state.retryNonce,
           });
         }
       };
       setHtml();
       return () => {
         isActive = false;
+        if (externalLoadTimeout.current) {
+          window.clearTimeout(externalLoadTimeout.current);
+          externalLoadTimeout.current = undefined;
+        }
         if (checkIFrameSubscription && checkIFrameSubscription.current) {
           checkIFrameSubscription.current.unsubscribe();
         }
@@ -202,14 +236,42 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       setNewUrl(details);
     }, 0);
 
+    if (props.current.url) {
+      if (externalLoadTimeout.current) {
+        window.clearTimeout(externalLoadTimeout.current);
+      }
+      const timeoutMs =
+        props.current.viewer === 'google'
+          ? Math.max(props.current.googleCheckInterval * props.current.googleMaxChecks + 2000, 15000)
+          : 15000;
+      externalLoadTimeout.current = window.setTimeout(() => {
+        if (!isActive) {
+          return;
+        }
+        setState((current) =>
+          current.phase !== 'loading'
+            ? current
+            : {
+                ...current,
+                phase: 'error',
+                errorMessage: `The ${props.current?.viewer} viewer did not finish loading in time.`,
+              }
+        );
+      }, timeoutMs);
+    }
+
     return () => {
       isActive = false;
       window.clearTimeout(timerRef);
+      if (externalLoadTimeout.current) {
+        window.clearTimeout(externalLoadTimeout.current);
+        externalLoadTimeout.current = undefined;
+      }
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
       }
     };
-  }, [inputProps]);
+  }, [inputProps, state.retryNonce]);
 
   const reloadIframe = (
     iframe: HTMLIFrameElement,
@@ -228,6 +290,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       iframeRef.current !== null &&
       iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)
     ) {
+      if (externalLoadTimeout.current) {
+        window.clearTimeout(externalLoadTimeout.current);
+        externalLoadTimeout.current = undefined;
+      }
       setState((current) => ({ ...current, phase: 'ready' }));
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
@@ -235,6 +301,54 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       }
     }
   };
+
+  const retryLoad = () => {
+    setState((current) => ({
+      ...current,
+      phase: props.current?.url ? 'loading' : 'idle',
+      errorMessage: '',
+      retryNonce: current.retryNonce + 1,
+    }));
+  };
+
+  const rendererContext: ViewerRendererContext = {
+    viewer: props.current?.viewer ?? 'google',
+    url: state.failedUrl || props.current?.url || '',
+    phase: state.phase,
+    errorText: state.errorMessage || 'Unable to load document.',
+    retry: retryLoad,
+  };
+
+  const loadingContent =
+    typeof props.current?.loadingRenderer === 'function'
+      ? props.current.loadingRenderer(rendererContext)
+      : props.current?.loadingRenderer;
+
+  const errorContent =
+    typeof props.current?.errorRenderer === 'function'
+      ? props.current.errorRenderer(rendererContext)
+      : props.current?.errorRenderer;
+
+  useEffect(() => {
+    if (!props.current || lastEmittedPhase.current === state.phase) {
+      return;
+    }
+    lastEmittedPhase.current = state.phase;
+    const event: DocumentViewerEvent = {
+      viewer: props.current.viewer,
+      url: state.failedUrl || props.current.url,
+      phase: state.phase,
+      errorText: state.errorMessage || 'Unable to load document.',
+      retry: retryLoad,
+    };
+    props.current.onPhaseChange?.(event);
+    if (state.phase === 'loading') {
+      props.current.onLoading?.(event);
+    }
+    if (state.phase === 'error') {
+      props.current.onError?.(event);
+    }
+  }, [state.errorMessage, state.failedUrl, state.phase]);
 
   return (
     <div
@@ -262,7 +376,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
             letterSpacing: '0.02em',
           }}
         >
-          {props.current?.loadingRenderer}
+          {loadingContent}
         </div>
       ) : null}
       {state.phase === 'error' ? (
@@ -283,7 +397,44 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
             padding: '16px',
           }}
         >
-          {state.errorMessage || 'Unable to load document.'}
+          {errorContent ?? (
+            <div>
+              <div>{state.errorMessage || 'Unable to load document.'}</div>
+              {props.current?.viewer ? (
+                <div style={{ marginTop: '8px', color: '#475569' }}>
+                  Viewer: {props.current.viewer}
+                </div>
+              ) : null}
+              {state.failedUrl ? (
+                <div
+                  style={{
+                    marginTop: '4px',
+                    color: '#64748b',
+                    fontSize: '12px',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {state.failedUrl}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={retryLoad}
+                style={{
+                  marginTop: '14px',
+                  border: '1px solid #fecaca',
+                  background: '#fff',
+                  color: '#991b1b',
+                  borderRadius: '999px',
+                  padding: '8px 14px',
+                  font: 'inherit',
+                  cursor: 'pointer',
+                }}
+              >
+                {props.current?.retryButtonText}
+              </button>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -312,6 +463,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           data={state.url}
           style={{ width: '100%', height: '100%', display: 'block' }}
           onLoad={() => {
+            if (externalLoadTimeout.current) {
+              window.clearTimeout(externalLoadTimeout.current);
+              externalLoadTimeout.current = undefined;
+            }
             setState((current) => ({ ...current, phase: 'ready' }));
           }}
           type="application/pdf"

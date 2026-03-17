@@ -48,7 +48,9 @@ Props:
 - viewerUrl: only for viewer: 'url'; location of the document renderer. Only use this option for other viewers then google or office.
 - queryParams, e.g. to set language. for google: hl=[lang] e.g. hl=nl
  - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://react-documents.firebaseapp.com/"
- - loadingRenderer: text or JSX shown in the built-in loading overlay. Defaults to `Loading document...`
+ - loadingRenderer: text, JSX, or a render function shown in the built-in loading overlay. Defaults to `Loading document...`
+ - errorRenderer: text, JSX, or a render function shown in the built-in error overlay. By default it shows the viewer, failing URL, and a retry button.
+ - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`
 
 Example with custom loading markup:
 
@@ -56,11 +58,27 @@ Example with custom loading markup:
 <DocumentViewer
   url={selectedDoc}
   viewer={selectedViewer.name}
-  loadingRenderer={
+  loadingRenderer={({ viewer }) => (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <span>Preparing preview...</span>
+      <span>Preparing {viewer} preview...</span>
     </div>
-  }
+  )}
+/>
+```
+
+Example with custom error markup:
+
+```tsx
+<DocumentViewer
+  url={selectedDoc}
+  viewer={selectedViewer.name}
+  errorRenderer={({ viewer, url, retry }) => (
+    <div style={{ textAlign: 'center' }}>
+      <div>Preview unavailable for {viewer}.</div>
+      <div>{url}</div>
+      <button type="button" onClick={retry}>Retry</button>
+    </div>
+  )}
 />
 ```
 

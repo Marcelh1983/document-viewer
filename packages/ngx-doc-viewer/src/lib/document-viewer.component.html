@@ -1,12 +1,37 @@
 <div class="container">
   <div *ngIf="renderPhase === 'loading'" class="loading-overlay">
     <ng-container *ngIf="loadingTemplate; else defaultLoadingTemplate">
-      <ng-container *ngTemplateOutlet="loadingTemplate"></ng-container>
+      <ng-container *ngTemplateOutlet="loadingTemplate; context: loadingTemplateContext"></ng-container>
     </ng-container>
     <ng-template #defaultLoadingTemplate>{{ loadingText }}</ng-template>
   </div>
   <div *ngIf="renderPhase === 'error'" class="error-overlay">
-    {{ errorText || 'Unable to load document.' }}
+    <ng-container *ngIf="errorTemplate; else defaultErrorTemplate">
+      <ng-container *ngTemplateOutlet="errorTemplate; context: errorTemplateContext"></ng-container>
+    </ng-container>
+    <ng-template #defaultErrorTemplate>
+      <div>
+        <div>{{ displayedErrorText }}</div>
+        <div *ngIf="configuredViewer" style="margin-top: 8px; color: #475569;">
+          Viewer: {{ configuredViewer }}
+        </div>
+        <div *ngIf="failedUrl" style="margin-top: 4px; color: #64748b; font-size: 12px; word-break: break-word;">
+          {{ failedUrl }}
+        </div>
+        <ng-container *ngIf="errorActionsTemplate; else defaultErrorActions">
+          <ng-container *ngTemplateOutlet="errorActionsTemplate; context: errorTemplateContext"></ng-container>
+        </ng-container>
+        <ng-template #defaultErrorActions>
+          <button
+            type="button"
+            (click)="retryLoad()"
+            style="margin-top: 14px; border: 1px solid #fecaca; background: #fff; color: #991b1b; border-radius: 999px; padding: 8px 14px; font: inherit; cursor: pointer;"
+          >
+            {{ retryButtonText }}
+          </button>
+        </ng-template>
+      </div>
+    </ng-template>
   </div>
 
   <ng-container *ngIf="!externalViewer">
