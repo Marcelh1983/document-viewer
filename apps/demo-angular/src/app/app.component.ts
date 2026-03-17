@@ -1,35 +1,82 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NgxDocViewerModule } from 'ngx-doc-viewer';
 import { handleFileUpload, ViewerType } from 'ngx-doc-viewer';
-import { viewers } from '@document-viewer/data';
+import {
+  DemoDoc,
+  DemoViewer,
+  getDemoDoc,
+  getDemoViewer,
+  viewers,
+} from '@document-viewer/data';
+
 @Component({
   selector: 'document-viewer-root',
   standalone: true,
-  imports: [CommonModule, NgxDocViewerModule],
+  imports: [NgClass, NgxDocViewerModule],
   templateUrl: 'app.component.html',
   styles: [],
 })
 export class AppComponent {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
   viewers = viewers;
-  selectedViewer = this.viewers[0];
+  selectedViewer = getDemoViewer();
   selectedDoc = this.selectedViewer.docs[0];
+  customUrl = '';
+
+  constructor() {
+    this.route.paramMap.subscribe((params) => {
+      const previewer = params.get('previewer') ?? undefined;
+      const doctype = params.get('doctype') ?? undefined;
+      const viewer = getDemoViewer(previewer);
+      const doc = getDemoDoc(viewer.name, doctype);
+
+      if (previewer !== viewer.name || doctype !== doc.type) {
+        void this.navigate(viewer.name, doc.type, true);
+        return;
+      }
+
+      this.selectedViewer = viewer;
+      this.selectedDoc = doc;
+      this.customUrl = '';
+    });
+  }
 
   selectViewer(viewerName: ViewerType) {
-    if (viewerName !== this.selectViewer.name) {
-      this.selectedViewer =
-        this.viewers.find((v) => v.name === viewerName) || this.viewers[0];
-      this.selectedDoc = this.selectedViewer.docs[0];
+    if (viewerName !== this.selectedViewer.name) {
+      const viewer = getDemoViewer(viewerName);
+      const doc = viewer.docs[0];
+      void this.navigate(viewer.name, doc.type);
     }
   }
 
-  getDocExtension(doc: string) {
-    const splittedDoc = doc.split('.');
-    return splittedDoc[splittedDoc.length - 1];
+  selectDoc(doc: DemoDoc) {
+    if (doc.type !== this.selectedDoc.type) {
+      void this.navigate(this.selectedViewer.name, doc.type);
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async handleFiles(fileInput: any) {
-    this.selectedDoc = await handleFileUpload(fileInput);
+    this.customUrl = await handleFileUpload(fileInput);
+  }
+
+  loadCustomUrl(url: string) {
+    this.customUrl = url;
+  }
+
+  get selectedUrl() {
+    return this.customUrl || this.selectedDoc.url;
+  }
+
+  trackByDocType(_index: number, doc: DemoDoc) {
+    return doc.type;
+  }
+
+  private navigate(viewer: DemoViewer['name'], docType: string, replaceUrl = false) {
+    return this.router.navigate(['/', viewer, docType], { replaceUrl });
   }
 }

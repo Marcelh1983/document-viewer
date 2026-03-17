@@ -1,5 +1,5 @@
 <ng-container *ngIf="!externalViewer">
-  <div *ngIf="configuredViewer !== 'pdf'" [innerHtml]="docHtml"></div>
+  <div *ngIf="configuredViewer !== 'pdf'" [innerHTML]="docHtml"></div>
   <object
     *ngIf="fullUrl && configuredViewer === 'pdf'"
     [data]="fullUrl"
@@ -16,7 +16,7 @@
 <ng-container *ngIf="externalViewer">
   <iframe
     (load)="iframeLoaded()"
-    *ngIf="fullUrl && disableContent === 'none'"
+    *ngIf="fullUrl && showIframe && disableContent === 'none'"
     #iframe
     id="iframe-doc-viewer"
     frameBorder="0"
@@ -39,7 +39,7 @@
     ></div>
     <iframe
       (load)="iframeLoaded()"
-      *ngIf="fullUrl"
+      *ngIf="fullUrl && showIframe"
       #iframe
       id="iframe"
       frameBorder="0"

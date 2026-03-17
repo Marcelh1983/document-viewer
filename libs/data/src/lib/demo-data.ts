@@ -1,20 +1,43 @@
 import { ViewerType, getbaseUrl } from 'docviewhelper';
-export const viewers: {
+
+export interface DemoDoc {
+  type: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoViewer {
   name: ViewerType;
-  docs: string[];
+  docs: DemoDoc[];
   custom: boolean;
   acceptedUploadTypes: string;
   viewerUrl?: string;
-}[] = [
+}
+
+export const viewers: DemoViewer[] = [
   {
     name: 'google',
     docs: [
-      'https://calibre-ebook.com/downloads/demos/demo.docx',
-      'https://go.microsoft.com/fwlink/?LinkID=521962',
-      'https://file-examples.com/storage/fe2356939c62607a6a1903b/2017/10/file_example_TIFF_1MB.tiff',
-      'https://file-examples.com/storage/fe2356939c62607a6a1903b/2017/10/file-example_PDF_1MB.pdf',
-      `${getbaseUrl()}/assets/file_example_PPT_250kB.ppt`,
-      `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
+      {
+        type: 'docx',
+        label: 'DOCX',
+        url: 'https://calibre-ebook.com/downloads/demos/demo.docx',
+      },
+      {
+        type: 'doc',
+        label: 'DOC',
+        url: 'https://go.microsoft.com/fwlink/?LinkID=521962',
+      },
+      {
+        type: 'pdf',
+        label: 'PDF',
+        url: 'https://filesamples.com/samples/document/pdf/sample1.pdf',
+      },
+      {
+        type: 'pptx',
+        label: 'PPTX',
+        url: `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
+      },
     ],
     custom: true,
     acceptedUploadTypes: '',
@@ -22,34 +45,71 @@ export const viewers: {
   {
     name: 'office',
     docs: [
-      'https://file-examples-com.github.io/uploads/2017/02/file-sample_100kB.docx',
-      'https://file-examples-com.github.io/uploads/2017/02/file_example_XLSX_50.xlsx',
-      `${getbaseUrl()}/assets/file_example_PPT_250kB.ppt`,
-      `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
+      {
+        type: 'docx',
+        label: 'DOCX',
+        url: 'https://filesamples.com/samples/document/docx/sample1.docx',
+      },
+      {
+        type: 'xlsx',
+        label: 'XLSX',
+        url: 'https://filesamples.com/samples/document/xlsx/sample1.xlsx',
+      },
+      {
+        type: 'pptx',
+        label: 'PPTX',
+        url: `${getbaseUrl()}/assets/file_example_PPTX_250kB.pptx`,
+      },
     ],
     custom: true,
     acceptedUploadTypes: '',
   },
   {
     name: 'mammoth',
-    docs: [`${getbaseUrl()}/assets/file-sample_100kB.docx`],
+    docs: [
+      {
+        type: 'docx',
+        label: 'DOCX',
+        url: `${getbaseUrl()}/assets/file-sample_100kB.docx`,
+      },
+    ],
     custom: false,
     acceptedUploadTypes:
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   },
   {
     name: 'pdf',
-    docs: [`${getbaseUrl()}/assets/file-sample_150kB.pdf`],
+    docs: [
+      {
+        type: 'pdf',
+        label: 'PDF',
+        url: `${getbaseUrl()}/assets/file-sample_150kB.pdf`,
+      },
+    ],
     custom: false,
     acceptedUploadTypes: 'application/pdf',
   },
   {
     name: 'url',
     docs: [
-      // eslint-disable-next-line max-len
-      `https://docs.google.com/document/d/e/2PACX-1vRs3gemrszDinuGJCi_wO2m5XVP1q2SlRhxM8PAUYc3wu9LFsvteny7l6Rkp695-ruhfn3gWXV03yXC/pub?embedded=true`,
+      {
+        type: 'published',
+        label: 'PUBLISHED',
+        // eslint-disable-next-line max-len
+        url: `https://docs.google.com/document/d/e/2PACX-1vRs3gemrszDinuGJCi_wO2m5XVP1q2SlRhxM8PAUYc3wu9LFsvteny7l6Rkp695-ruhfn3gWXV03yXC/pub?embedded=true`,
+      },
     ],
     custom: true,
     acceptedUploadTypes: '',
   },
 ];
+
+export const defaultDemoViewer = viewers[0];
+
+export const getDemoViewer = (viewerName?: string) =>
+  viewers.find((viewer) => viewer.name === viewerName) ?? defaultDemoViewer;
+
+export const getDemoDoc = (viewerName?: string, docType?: string) => {
+  const viewer = getDemoViewer(viewerName);
+  return viewer.docs.find((doc) => doc.type === docType) ?? viewer.docs[0];
+};

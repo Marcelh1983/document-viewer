@@ -31,7 +31,10 @@
                 "output": ""
               }
             ],
-            "styles": ["apps/demo-angular/src/styles.scss"],
+            "styles": [
+              "apps/demo-angular/src/tailwind.css",
+              "apps/demo-angular/src/styles.scss"
+            ],
             "scripts": []
           },
           "configurations": {

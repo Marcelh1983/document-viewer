@@ -9,7 +9,7 @@ import {
   ViewChildren,
   QueryList,
   ElementRef,
-  AfterViewInit,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -73,7 +73,7 @@ export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
   ],
 })
 export class NgxDocViewerComponent
-  implements OnChanges, OnDestroy, AfterViewInit
+  implements OnChanges, OnDestroy
 {
   @Output() loaded: EventEmitter<void> = new EventEmitter();
   @Input() url = '';
@@ -91,23 +91,14 @@ export class NgxDocViewerComponent
   public externalViewer = false;
   public docHtml = '';
   public configuredViewer: viewerType = 'google';
+  public showIframe = true;
   private checkIFrameSubscription?: IFrameReloader = undefined;
-  private shouldCheckIframe = false;
 
   constructor(
     private domSanitizer: DomSanitizer,
     private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
   ) {}
-
-  ngAfterViewInit(): void {
-    if (this.shouldCheckIframe) {
-      const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
-      if (iframe) {
-        this.shouldCheckIframe = false;
-        this.reloadIframe(iframe);
-      }
-    }
-  }
 
   ngOnDestroy(): void {
     if (this.checkIFrameSubscription) {
@@ -171,35 +162,47 @@ export class NgxDocViewerComponent
       }
       if (!this.url) {
         this.fullUrl = undefined;
+        this.showIframe = false;
       } else if (
         viewerDetails.externalViewer ||
         this.configuredViewer === 'url' ||
         this.configuredViewer === 'pdf'
       ) {
-        this.fullUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
+        const iframeUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
           viewerDetails.url,
         );
+        this.fullUrl = undefined;
+        this.showIframe = false;
+        this.cdr.detectChanges();
+        this.fullUrl = iframeUrl;
+        this.showIframe = true;
         // see:
         // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
         // hack to reload iframe if it's not loaded.
         // would maybe be better to use view.officeapps.live.com but seems not to work with sas token.
+        this.cdr.detectChanges();
         if (
           this.configuredViewer === 'google' &&
           this.googleCheckContentLoaded
         ) {
           this.ngZone.runOutsideAngular(() => {
-            // if it's not loaded after the googleIntervalCheck, then open load again.
-            const iframe = this.iframes?.first
-              ?.nativeElement as HTMLIFrameElement;
-            if (iframe) {
-              this.reloadIframe(iframe);
-            } else {
-              this.shouldCheckIframe = true;
-            }
+            window.setTimeout(() => {
+              const iframe = this.iframes?.first
+                ?.nativeElement as HTMLIFrameElement;
+              if (iframe) {
+                this.reloadIframe(iframe);
+              }
+            }, 0);
           });
         }
       } else if (this.configuredViewer === 'mammoth') {
-        this.docHtml = await getDocxToHtml(this.url);
+        this.fullUrl = undefined;
+        this.showIframe = false;
+        const docHtml = await getDocxToHtml(this.url);
+        this.ngZone.run(() => {
+          this.docHtml = docHtml;
+          this.cdr.detectChanges();
+        });
       }
     }
   }

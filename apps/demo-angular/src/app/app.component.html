@@ -1,52 +1,102 @@
-<div style="text-align: center">
-  <div class="d-flex">
-    <button
-      *ngFor="let viewer of viewers"
-      [class.active]="selectedViewer.name === viewer.name"
-      class="btn btn-outline-primary m-2"
-      (click)="selectViewer(viewer.name)"
-    >
-      {{ viewer.name }}
-    </button>
+<div class="flex flex-col h-screen bg-slate-100">
+
+  <!-- Header -->
+  <header class="bg-linear-to-r from-violet-600 to-indigo-600 text-white px-6 py-4 shadow-lg shrink-0">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold tracking-tight">Document Viewer</h1>
+        <p class="text-violet-200 text-sm mt-0.5">Demo &middot; Angular</p>
+      </div>
+      <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/30">
+        ngx-doc-viewer
+      </span>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <div class="bg-white border-b border-slate-200 px-6 py-4 shadow-sm shrink-0">
+    <div class="max-w-7xl mx-auto space-y-3">
+
+      <!-- Viewer selector -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">Viewer</span>
+        @for (viewer of viewers; track viewer.name) {
+          <button
+            (click)="selectViewer(viewer.name)"
+            [ngClass]="selectedViewer.name === viewer.name
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'"
+            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 cursor-pointer"
+          >
+            {{ viewer.name }}
+          </button>
+        }
+      </div>
+
+      <!-- Document selector -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">Format</span>
+        @for (doc of selectedViewer.docs; track trackByDocType($index, doc)) {
+          <button
+            (click)="selectDoc(doc)"
+            [ngClass]="selectedDoc.type === doc.type
+              ? 'bg-violet-100 text-violet-700 border border-violet-300'
+              : 'bg-white border border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600'"
+            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm focus:outline-none cursor-pointer"
+          >
+            {{ doc.label }}
+          </button>
+        }
+
+        @if (selectedViewer.custom) {
+          <div class="flex items-center gap-2 ml-2">
+            <input
+              #input
+              type="text"
+              placeholder="Enter document URL..."
+              [value]="customUrl"
+              class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 w-72"
+            />
+            <button
+              (click)="loadCustomUrl(input.value)"
+              class="px-4 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+            >
+              Load
+            </button>
+          </div>
+        }
+
+        @if (selectedViewer.acceptedUploadTypes) {
+          <label class="ml-2 cursor-pointer flex items-center gap-2 px-3 py-1.5 border border-dashed border-slate-300 rounded-lg text-sm text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all duration-200 hover:-translate-y-0.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Upload file
+            <input
+              type="file"
+              class="sr-only"
+              [attr.accept]="selectedViewer.acceptedUploadTypes"
+              (change)="handleFiles($event)"
+            />
+          </label>
+        }
+      </div>
+
+    </div>
   </div>
-  <div class="d-flex">
-    <button
-      *ngFor="let doc of selectedViewer.docs"
-      [class.active]="selectedDoc === doc"
-      class="btn btn-outline-secondary m-2"
-      (click)="selectedDoc = doc"
-    >
-      {{ getDocExtension(doc) }}
-    </button>
-    <ng-container *ngIf="selectedViewer.custom">
-      <input
-        class="form-control w-100 m-2"
-        type="text"
-        placeholder="your document url"
-        #input
-      />
-      <button
-        class="btn btn-outline-secondary m-2"
-        (click)="selectedDoc = input.value"
-      >
-        Go
-      </button>
-    </ng-container>
-    <ng-container *ngIf="selectedViewer.acceptedUploadTypes">
-      <input
-        type="file"
-        id="input"
-        [accept]="selectedViewer.acceptedUploadTypes"
-        (change)="handleFiles($event)"
-      />
-    </ng-container>
+
+  <!-- Document Viewer -->
+  <div class="flex-1 p-4 min-h-0">
+    <div class="h-full rounded-xl overflow-hidden shadow-lg bg-white ring-1 ring-slate-200">
+      <ngx-doc-viewer
+        queryParams="hl=Nl"
+        [url]="selectedUrl"
+        [viewerUrl]="selectedViewer.viewerUrl || ''"
+        [viewer]="selectedViewer.name"
+        overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
+        style="width: 100%; height: 100%; display: block;"
+      ></ngx-doc-viewer>
+    </div>
   </div>
-  <ngx-doc-viewer
-    queryParams="hl=Nl"
-    [url]="selectedDoc"
-    [viewerUrl]="selectedViewer.viewerUrl || ''"
-    [viewer]="selectedViewer.name"
-    overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
-    style="width: 100%; height: 80vh"
-  ></ngx-doc-viewer>
+
 </div>

@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
 
 const root = resolve(__dirname, 'src');
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   root,
   publicDir: resolve(__dirname, 'src/assets'),
   resolve: {
