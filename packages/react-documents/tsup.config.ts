@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
-  dts: false, // Temporarily disabled due to workspace resolution issues
+  dts: { resolve: ['docviewhelper'] },
   external: ['react', 'react-dom', 'react/jsx-runtime', 'docviewhelper'],
   sourcemap: true,
   clean: true,

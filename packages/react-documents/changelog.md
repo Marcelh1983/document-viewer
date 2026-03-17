@@ -1,4 +1,4 @@
-# Unreleased
+# 2.0.0 (03/17/2026)
 * added a built-in loading overlay while external viewers and inline renderers initialize
 * added customizable loading content support through the `loadingRenderer` prop
 * added customizable error content support through the `errorRenderer` prop

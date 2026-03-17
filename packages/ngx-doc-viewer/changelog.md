@@ -1,4 +1,4 @@
-# Unreleased
+# 21.0.0 (03/17/2026)
 * added a built-in loading overlay while external viewers and inline renderers initialize
 * added customizable loading content support with `loadingText` and projected Angular `loadingContent` templates
 * added customizable error content support with `errorTextOverride` and projected Angular `errorContent` templates
