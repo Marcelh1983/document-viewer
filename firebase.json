@@ -3,14 +3,8 @@
     {
       "target": "demo-angular",
       "public": "dist/apps/demo-angular",
-      "predeploy": [
-        "ng build demo-angular --configuration=production"
-      ],
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
+      "predeploy": ["ng build demo-angular --configuration=production"],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
           "source": "**",
@@ -21,20 +15,14 @@
     {
       "target": "demo-react",
       "public": "dist/apps/demo-react",
-      "predeploy": [
-        "vite build --config apps/demo-react/vite.config.ts"
-      ],
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
+      "predeploy": ["vite build --config apps/demo-react/vite.config.ts"],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
           "source": "**",
           "destination": "/index.html"
         }
       ]
-    }    
+    }
   ]
 }

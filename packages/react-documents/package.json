@@ -12,7 +12,13 @@
     "type": "git",
     "url": "git+https://github.com/Marcelh1983/document-viewer.git"
   },
-  "keywords": ["react", "document", "viewer", "pdf", "docx"],
+  "keywords": [
+    "react",
+    "document",
+    "viewer",
+    "pdf",
+    "docx"
+  ],
   "funding": [
     {
       "type": "individual",

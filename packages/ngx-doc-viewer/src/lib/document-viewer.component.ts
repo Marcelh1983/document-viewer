@@ -92,7 +92,10 @@ export class NgxDocViewerComponent
   private checkIFrameSubscription?: IFrameReloader = undefined;
   private shouldCheckIframe = false;
 
-  constructor(private domSanitizer: DomSanitizer, private ngZone: NgZone) {}
+  constructor(
+    private domSanitizer: DomSanitizer,
+    private ngZone: NgZone,
+  ) {}
 
   ngAfterViewInit(): void {
     if (this.shouldCheckIframe) {
@@ -125,7 +128,7 @@ export class NgxDocViewerComponent
         this.viewer !== 'url'
       ) {
         console.error(
-          `Unsupported viewer: '${this.viewer}'. Supported viewers: google, office, mammoth and pdf`
+          `Unsupported viewer: '${this.viewer}'. Supported viewers: google, office, mammoth and pdf`,
         );
       }
       this.configuredViewer = this.viewer;
@@ -144,7 +147,7 @@ export class NgxDocViewerComponent
         this.url,
         this.configuredViewer,
         this.queryParams,
-        this.viewerUrl
+        this.viewerUrl,
       );
       this.externalViewer = viewerDetails.externalViewer;
       if (
@@ -157,7 +160,7 @@ export class NgxDocViewerComponent
           newUrl,
           this.configuredViewer,
           this.queryParams,
-          this.viewerUrl
+          this.viewerUrl,
         );
       }
       this.docHtml = '';
@@ -172,7 +175,7 @@ export class NgxDocViewerComponent
         this.configuredViewer === 'pdf'
       ) {
         this.fullUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
-          viewerDetails.url
+          viewerDetails.url,
         );
         // see:
         // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
@@ -204,7 +207,7 @@ export class NgxDocViewerComponent
     this.checkIFrameSubscription.subscribe(
       iframe,
       this.googleCheckInterval,
-      this.googleMaxChecks
+      this.googleMaxChecks,
     );
   }
 
