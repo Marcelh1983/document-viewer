@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build:docviewhelper": "pnpm --filter docviewhelper build",
-    "build:ngx-doc-viewer": "pnpm --filter ngx-doc-viewer build",
-    "build:react-documents": "pnpm --filter react-documents build",
+    "build:docviewhelper": "pnpm --filter docviewhelper build && node tools/prepare-dist.mjs docviewhelper",
+    "build:ngx-doc-viewer": "pnpm --filter ngx-doc-viewer build && node tools/prepare-dist.mjs ngx-doc-viewer",
+    "build:react-documents": "pnpm --filter react-documents build && node tools/prepare-dist.mjs react-documents",
     "build:all": "pnpm build:docviewhelper && pnpm build:ngx-doc-viewer && pnpm build:react-documents",
     "start:demo:angular": "ng serve demo-angular --port=4200",
     "start:demo:react": "vite --config apps/demo-react/vite.config.ts",

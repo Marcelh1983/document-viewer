@@ -1,10 +1,6 @@
 // eslint-disable-next-line no-var
 declare var mammoth: any;
-import {
-  IFrameReloader,
-  ViewerRecoveryPlan,
-  ViewerType,
-} from './model';
+import { IFrameReloader, ViewerRecoveryPlan, ViewerType } from './model';
 
 export const fileToArray = (url: string): Promise<ArrayBuffer> => {
   return new Promise<ArrayBuffer>((resolve, reject) => {
@@ -27,8 +23,8 @@ export const fileToArray = (url: string): Promise<ArrayBuffer> => {
 };
 
 export const timeout = (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
 
 const reloadIFrame = (iframe: HTMLIFrameElement) => {
   if (iframe) {
@@ -37,9 +33,8 @@ const reloadIFrame = (iframe: HTMLIFrameElement) => {
     setTimeout(() => {
       if (iframe) {
         iframe.src = url;
-      };
-    }, 100)
-    
+      }
+    }, 100);
   }
 };
 
@@ -66,26 +61,29 @@ export const getbaseUrl = (): string => {
   return protocol + '//' + host;
 };
 
-
 export const getLocation = (href: string) => {
   // eslint-disable-next-line no-useless-escape
-  const match = href.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
-  return match && {
-    href,
-    protocol: match[1],
-    host: match[2],
-    hostname: match[3],
-    port: match[4],
-    pathname: match[5],
-    search: match[6],
-    hash: match[7]
-  }
-}
+  const match = href.match(
+    /^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/,
+  );
+  return (
+    match && {
+      href,
+      protocol: match[1],
+      host: match[2],
+      hostname: match[3],
+      port: match[4],
+      pathname: match[5],
+      search: match[6],
+      hash: match[7],
+    }
+  );
+};
 
 export const getDocxToHtml = async (url: string) => {
   if (!mammoth) {
     console.error(
-      'Please install mammoth and make sure mammoth.browser.min.js is loaded.'
+      'Please install mammoth and make sure mammoth.browser.min.js is loaded.',
     );
   }
   const arrayBuffer = await fileToArray(url);
@@ -135,16 +133,17 @@ export const iframeIsLoaded = (iframe: HTMLIFrameElement) => {
     // ignore message Blocked a frame with origin "http://..." from accessing a cross-origin frame.
   }
   return isLoaded;
-}
+};
 
 const internetExplorer = () =>
-  (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || navigator.userAgent.indexOf("Trident/") > -1);
+  /MSIE (\d+\.\d+);/.test(navigator.userAgent) ||
+  navigator.userAgent.indexOf('Trident/') > -1;
 
 export const getViewerDetails = (
   url: string,
   configuredViewer: ViewerType = 'google',
   queryParams = '',
-  viewerUrl = ''
+  viewerUrl = '',
 ) => {
   switch (configuredViewer) {
     case 'google':
@@ -208,11 +207,15 @@ export const replaceLocalUrl = (url: string, overrideLocalhost: string) => {
   const loc = getLocation(url);
   const locReplace = getLocation(overrideLocalhost);
   if (loc && locReplace) {
-    return url.replace(loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
-      locReplace.port ? `${locReplace.hostname}:${locReplace.port}` : locReplace.hostname);
+    return url.replace(
+      loc.port ? `${loc.hostname}:${loc.port}` : loc.hostname,
+      locReplace.port
+        ? `${locReplace.hostname}:${locReplace.port}`
+        : locReplace.hostname,
+    );
   }
   return url;
-}
+};
 
 const getBlobFromUrl = (url: string) => {
   return new Promise<File>((resolve, reject) => {
@@ -224,39 +227,42 @@ const getBlobFromUrl = (url: string) => {
     };
     request.onerror = reject;
     request.send();
-  })
-}
-
-
-export const uploadToCloud = (fileUrl: string, api: string) => new Promise((resolve, reject) => {
-  getBlobFromUrl(fileUrl).then(blob => {
-    const loc = getLocation(fileUrl);
-    const name = loc?.pathname ? loc?.pathname?.split('/')[loc?.pathname?.split('/').length - 1] : '';
-    const formData = new FormData();
-    const request = new XMLHttpRequest();
-    formData.append('file', blob, name);
-    request.onreadystatechange = e => {
-      if (request.readyState === XMLHttpRequest.DONE) {
-        if (request.status === 200) {
-          resolve(request.responseText);
-        } else {
-          reject(request.responseText);
-        }
-      }
-    };
-    request.onerror = reject;
-    request.open('post', api, true);
-    request.send(formData);
   });
-});
+};
+
+export const uploadToCloud = (fileUrl: string, api: string) =>
+  new Promise((resolve, reject) => {
+    getBlobFromUrl(fileUrl).then((blob) => {
+      const loc = getLocation(fileUrl);
+      const name = loc?.pathname
+        ? loc?.pathname?.split('/')[loc?.pathname?.split('/').length - 1]
+        : '';
+      const formData = new FormData();
+      const request = new XMLHttpRequest();
+      formData.append('file', blob, name);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      request.onreadystatechange = (e) => {
+        if (request.readyState === XMLHttpRequest.DONE) {
+          if (request.status === 200) {
+            resolve(request.responseText);
+          } else {
+            reject(request.responseText);
+          }
+        }
+      };
+      request.onerror = reject;
+      request.open('post', api, true);
+      request.send(formData);
+    });
+  });
 
 export const isLocalFile = (file: string) => {
   const loc = getLocation(file);
   const hostname = loc?.hostname || '';
   return (
-    (['localhost', '127.0.0.1', '', '::1'].includes(hostname))
-    || (hostname.startsWith('192.168.'))
-    || (hostname.startsWith('10.0.'))
-    || (hostname.endsWith('.local'))
-  )
+    ['localhost', '127.0.0.1', '', '::1'].includes(hostname) ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.0.') ||
+    hostname.endsWith('.local')
+  );
 };
