@@ -31,6 +31,6 @@
     "@angular/common": ">= 15.0.0"
   },
   "dependencies": {
-    "docviewhelper": ">= 0.0.2"
+    "docviewhelper": "workspace:*"
   }
 }

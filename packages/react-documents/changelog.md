@@ -3,7 +3,10 @@
 * added customizable loading content support through the `loadingRenderer` prop
 * added customizable error content support through the `errorRenderer` prop
 * added configurable retry button text for the default error overlay
+* added optional built-in secondary error action for opening or downloading the source URL
+* added configurable Office reload control and documented one-time Office auto retry behavior
 * added structured render context for loading and error renderers with viewer, url, phase, error text, and retry
+* added React lifecycle callbacks for loading, error, and phase changes
 * improved iframe remounting when switching between Google and Office viewers
 * improved demo routing so `previewer` and `doctype` are reflected in the URL
 

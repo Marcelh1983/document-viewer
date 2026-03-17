@@ -53,6 +53,6 @@
     "react-dom": ">=17.0.0"
   },
   "dependencies": {
-    "docviewhelper": ">= 0.0.2"
+    "docviewhelper": "workspace:*"
   }
 }

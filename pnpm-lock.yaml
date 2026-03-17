@@ -186,14 +186,14 @@ importers:
         specifier: '>= 15.0.0'
         version: 21.2.4(@angular/animations@21.2.4(@angular/core@21.2.4(@angular/compiler@21.2.4)(rxjs@7.8.2)(zone.js@0.16.1)))(@angular/common@21.2.4(@angular/core@21.2.4(@angular/compiler@21.2.4)(rxjs@7.8.2)(zone.js@0.16.1))(rxjs@7.8.2))(@angular/core@21.2.4(@angular/compiler@21.2.4)(rxjs@7.8.2)(zone.js@0.16.1))
       docviewhelper:
-        specifier: '>= 0.0.2'
-        version: 0.0.2
+        specifier: workspace:*
+        version: link:../docviewhelper
 
   packages/react-documents:
     dependencies:
       docviewhelper:
-        specifier: '>= 0.0.2'
-        version: 0.0.2
+        specifier: workspace:*
+        version: link:../docviewhelper
       react:
         specifier: '>=17.0.0'
         version: 19.2.4
@@ -3924,9 +3924,6 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
-
-  docviewhelper@0.0.2:
-    resolution: {integrity: sha512-4ETJdDT//5Q8qcEGY9UjYo6dZiFzn3CHXAoSli4w35uehVdkKschIoRjG3exesc5jyVc9Zrch3oZKZR/5i4ZQQ==}
 
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
@@ -11106,8 +11103,6 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
-
-  docviewhelper@0.0.2: {}
 
   dom-accessibility-api@0.5.16: {}
 

@@ -58,6 +58,12 @@ Input:
  - loadingText: fallback text shown in the built-in loading overlay. Defaults to `Loading document...`
  - errorTextOverride: fallback text shown in the built-in error overlay. Defaults to the runtime error message.
  - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`
+ - officeAutoRetry: automatically retries the Office viewer once after `officeRetryDelay`. Defaults to `false`
+ - officeRetryDelay: delay in milliseconds before the one-time Office auto retry. Defaults to `3000`
+ - officeReloadButtonText: text shown in the persistent Office reload button. Defaults to `↻`
+ - officeReloadButtonTitle: tooltip/title for the persistent Office reload button. Defaults to `Reload document`
+ - secondaryActionText: optional text for a built-in secondary error action button, for example `Open source` or `Download`
+ - secondaryActionMode: controls the built-in secondary action behavior. Supported values: `open` or `download`. Defaults to `open`
 
 For custom loading markup in Angular, project an `ng-template` named `loadingContent`.
 The template receives `$implicit` and `state` with:
@@ -66,6 +72,7 @@ The template receives `$implicit` and `state` with:
 - `phase`
 - `errorText`
 - `retry()`
+- `actionUrl`
 
 ```html
 <ngx-doc-viewer [url]="doc" viewer="office">
@@ -78,6 +85,16 @@ The template receives `$implicit` and `state` with:
 </ngx-doc-viewer>
 ```
 
+To replace the persistent Office reload control, project an `ng-template` named `officeReloadContent`:
+
+```html
+<ngx-doc-viewer [url]="doc" viewer="office">
+  <ng-template #officeReloadContent let-state>
+    <span>Reload</span>
+  </ng-template>
+</ngx-doc-viewer>
+```
+
 For custom error markup in Angular, project an `ng-template` named `errorContent`.
 It receives the same context and can call `retry()` directly:
 
@@ -86,8 +103,9 @@ It receives the same context and can call `retry()` directly:
   <ng-template #errorContent let-state>
     <div style="text-align:center;">
       <div>Preview unavailable for {{ state.viewer }}.</div>
-      <div>{{ state.url }}</div>
+      <div>{{ state.actionUrl }}</div>
       <button type="button" (click)="state.retry()">Retry</button>
+      <a [href]="state.actionUrl" target="_blank" rel="noreferrer">Open source</a>
     </div>
   </ng-template>
 </ngx-doc-viewer>
@@ -100,7 +118,7 @@ If you want to keep the default error layout but replace just the actions area, 
   <ng-template #errorActions let-state>
     <div style="margin-top: 14px; display: flex; gap: 8px; justify-content: center;">
       <button type="button" (click)="state.retry()">Try again</button>
-      <a [href]="state.url" target="_blank" rel="noreferrer">Open source</a>
+      <a [href]="state.actionUrl" target="_blank" rel="noreferrer">Open source</a>
     </div>
   </ng-template>
 </ngx-doc-viewer>
@@ -114,6 +132,9 @@ There are some issues loading document in the google viewer. See: https://stacko
 Output:
 
 - loaded: emitted when the current iframe is ready. Can be used to hook into custom loading or telemetry flows.
+- loading: emitted when the viewer enters the `loading` phase. Payload includes `viewer`, `url`, `phase`, `errorText`, `retry()`, and `actionUrl`.
+- error: emitted when the viewer enters the `error` phase. Payload includes `viewer`, `url`, `phase`, `errorText`, `retry()`, and `actionUrl`.
+- phaseChange: emitted whenever the internal phase changes to `idle`, `loading`, `ready`, or `error`.
 
 ### Recent behavior improvements
 

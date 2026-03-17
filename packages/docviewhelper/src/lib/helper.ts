@@ -1,6 +1,10 @@
 // eslint-disable-next-line no-var
 declare var mammoth: any;
-import { IFrameReloader, ViewerType } from './model';
+import {
+  IFrameReloader,
+  ViewerRecoveryPlan,
+  ViewerType,
+} from './model';
 
 export const fileToArray = (url: string): Promise<ArrayBuffer> => {
   return new Promise<ArrayBuffer>((resolve, reject) => {
@@ -170,6 +174,28 @@ export const getViewerDetails = (
     url: fullUrl,
     externalViewer,
   };
+};
+
+export const getViewerRecoveryPlan = ({
+  viewer,
+  googleCheckContentLoaded = true,
+  officeAutoRetry = false,
+}: {
+  viewer: ViewerType;
+  googleCheckContentLoaded?: boolean;
+  officeAutoRetry?: boolean;
+}): ViewerRecoveryPlan => {
+  const modes: ViewerRecoveryPlan['modes'] = [];
+
+  if (viewer === 'google' && googleCheckContentLoaded) {
+    modes.push('google-probe');
+  }
+
+  if (viewer === 'office' && officeAutoRetry) {
+    modes.push('office-auto-retry');
+  }
+
+  return { modes };
 };
 
 export const replaceLocalUrl = (url: string, overrideLocalhost: string) => {

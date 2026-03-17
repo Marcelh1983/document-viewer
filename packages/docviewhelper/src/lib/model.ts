@@ -1,5 +1,10 @@
 export type ViewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 export type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
+export type ViewerRecoveryMode = 'google-probe' | 'office-auto-retry';
+
+export interface ViewerRecoveryPlan {
+  modes: ViewerRecoveryMode[];
+}
 
 interface Props {
   loaded?: () => void;

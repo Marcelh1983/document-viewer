@@ -22,13 +22,25 @@
           <ng-container *ngTemplateOutlet="errorActionsTemplate; context: errorTemplateContext"></ng-container>
         </ng-container>
         <ng-template #defaultErrorActions>
-          <button
-            type="button"
-            (click)="retryLoad()"
-            style="margin-top: 14px; border: 1px solid #fecaca; background: #fff; color: #991b1b; border-radius: 999px; padding: 8px 14px; font: inherit; cursor: pointer;"
-          >
-            {{ retryButtonText }}
-          </button>
+          <div style="margin-top: 14px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+            <button
+              type="button"
+              (click)="retryLoad()"
+              style="border: 1px solid #fecaca; background: #fff; color: #991b1b; border-radius: 999px; padding: 8px 14px; font: inherit; cursor: pointer;"
+            >
+              {{ retryButtonText }}
+            </button>
+            <a
+              *ngIf="secondaryActionText && failedUrl"
+              [href]="failedUrl"
+              [attr.target]="secondaryActionMode === 'open' ? '_blank' : null"
+              [attr.rel]="secondaryActionMode === 'open' ? 'noreferrer' : null"
+              [attr.download]="secondaryActionMode === 'download' ? '' : null"
+              style="border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 999px; padding: 8px 14px; text-decoration: none; font: inherit;"
+            >
+              {{ secondaryActionText }}
+            </a>
+          </div>
         </ng-template>
       </div>
     </ng-template>
@@ -52,6 +64,19 @@
       </p>
     </object>
   </ng-container>
+
+  <button
+    *ngIf="configuredViewer === 'office' && renderPhase === 'ready'"
+    class="office-reload-btn"
+    type="button"
+    [attr.title]="officeReloadButtonTitle"
+    (click)="retryLoad()"
+  >
+    <ng-container *ngIf="officeReloadTemplate; else defaultOfficeReloadTemplate">
+      <ng-container *ngTemplateOutlet="officeReloadTemplate; context: errorTemplateContext"></ng-container>
+    </ng-container>
+    <ng-template #defaultOfficeReloadTemplate>{{ officeReloadButtonText }}</ng-template>
+  </button>
 
   <ng-container *ngIf="externalViewer">
     <iframe

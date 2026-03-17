@@ -3,7 +3,10 @@
 * added customizable loading content support with `loadingText` and projected Angular `loadingContent` templates
 * added customizable error content support with `errorTextOverride` and projected Angular `errorContent` templates
 * added configurable retry button text and Angular `errorActions` template support for the default error overlay
+* added optional built-in secondary error action for opening or downloading the source URL
+* added configurable Office reload control and documented one-time Office auto retry behavior
 * added structured template context for Angular loading and error templates with viewer, url, phase, error text, and retry
+* added Angular lifecycle outputs for loading, error, and phase changes
 * improved iframe remounting when switching between Google and Office viewers
 * fixed Angular mammoth rendering after switching from external viewers
 * improved Angular and React demo routing so `previewer` and `doctype` are reflected in the URL

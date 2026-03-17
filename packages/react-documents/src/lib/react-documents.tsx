@@ -3,6 +3,7 @@ import {
   IFrameReloader,
   googleCheckSubscription,
   getViewerDetails,
+  getViewerRecoveryPlan,
   getDocxToHtml,
   iframeIsLoaded,
   isLocalFile,
@@ -18,6 +19,7 @@ interface ViewerRendererContext {
   phase: ViewerRenderPhase;
   errorText: string;
   retry: () => void;
+  actionUrl: string;
 }
 export type DocumentViewerEvent = ViewerRendererContext;
 
@@ -58,9 +60,16 @@ interface Props {
   googleCheckContentLoaded: boolean;
   viewer: viewerType;
   overrideLocalhost: string;
+  officeAutoRetry: boolean;
+  officeRetryDelay: number;
   loadingRenderer?: ReactNode | ((context: ViewerRendererContext) => ReactNode);
   errorRenderer?: ReactNode | ((context: ViewerRendererContext) => ReactNode);
   retryButtonText?: string;
+  officeReloadRenderer?: ReactNode | ((context: ViewerRendererContext) => ReactNode);
+  officeReloadButtonText?: string;
+  officeReloadButtonTitle?: string;
+  secondaryActionText?: string;
+  secondaryActionMode?: 'open' | 'download';
   style?: CSSProperties | undefined;
   className?: string | undefined;
 }
@@ -76,12 +85,19 @@ const defaultProps: Props = {
   queryParams: '',
   url: '',
   overrideLocalhost: '',
+  officeAutoRetry: false,
+  officeRetryDelay: 3000,
   googleMaxChecks: 5,
   viewer: 'google',
   viewerUrl: '',
   loadingRenderer: 'Loading document...',
   errorRenderer: undefined,
   retryButtonText: 'Retry',
+  officeReloadRenderer: undefined,
+  officeReloadButtonText: '↻',
+  officeReloadButtonTitle: 'Reload document',
+  secondaryActionText: '',
+  secondaryActionMode: 'open',
   style: {
     width: '100%',
     height: '100%',
@@ -115,6 +131,9 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
   const checkIFrameSubscription = useRef<IFrameReloader | undefined>(undefined);
   const props = useRef<Props | undefined>(undefined);
   const externalLoadTimeout = useRef<number | undefined>(undefined);
+  const officeRetryTimeout = useRef<number | undefined>(undefined);
+  const officeAutoRetriedSourceKey = useRef<string | undefined>(undefined);
+  const currentOfficeSourceKey = useRef<string | undefined>(undefined);
   const lastEmittedPhase = useRef<ViewerRenderPhase | undefined>(undefined);
 
   const setNewUrl = async (details: {
@@ -137,6 +156,79 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           props.current.googleCheckInterval,
           props.current.googleMaxChecks
         );
+      }
+    }
+  };
+
+  const scheduleGoogleRecovery = (details: {
+    url: string;
+    externalViewer: boolean;
+  }) => {
+    if (
+      !props.current ||
+      props.current.viewer !== 'google' ||
+      props.current.googleCheckContentLoaded !== true
+    ) {
+      return;
+    }
+    window.setTimeout(() => {
+      if (!props.current) {
+        return;
+      }
+      setNewUrl(details);
+    }, 0);
+  };
+
+  const scheduleOfficeRecovery = (isActive: boolean) => {
+    if (
+      !props.current ||
+      props.current.viewer !== 'office' ||
+      !props.current.officeAutoRetry
+    ) {
+      return;
+    }
+    if (officeRetryTimeout.current) {
+      window.clearTimeout(officeRetryTimeout.current);
+    }
+    if (
+      currentOfficeSourceKey.current &&
+      officeAutoRetriedSourceKey.current !== currentOfficeSourceKey.current
+    ) {
+      const retryDelay = props.current.officeRetryDelay;
+      officeRetryTimeout.current = window.setTimeout(() => {
+        if (
+          !isActive ||
+          !currentOfficeSourceKey.current ||
+          officeAutoRetriedSourceKey.current === currentOfficeSourceKey.current
+        ) {
+          return;
+        }
+        officeAutoRetriedSourceKey.current = currentOfficeSourceKey.current;
+        setState((current) => ({
+          ...current,
+          phase: 'loading',
+          errorMessage: '',
+          retryNonce: current.retryNonce + 1,
+        }));
+      }, retryDelay);
+    }
+  };
+
+  const scheduleViewerRecovery = (
+    details: { url: string; externalViewer: boolean },
+    isActive: boolean
+  ) => {
+    const recoveryPlan = getViewerRecoveryPlan({
+      viewer: props.current?.viewer ?? 'google',
+      googleCheckContentLoaded: props.current?.googleCheckContentLoaded,
+      officeAutoRetry: props.current?.officeAutoRetry,
+    });
+    for (const mode of recoveryPlan.modes) {
+      if (mode === 'google-probe') {
+        scheduleGoogleRecovery(details);
+      }
+      if (mode === 'office-auto-retry') {
+        scheduleOfficeRecovery(isActive);
       }
     }
   };
@@ -166,6 +258,12 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         props.current.viewerUrl
       );
     }
+    const officeSourceKey =
+      props.current.viewer === 'office' ? details.url : undefined;
+    if (officeSourceKey !== currentOfficeSourceKey.current) {
+      officeAutoRetriedSourceKey.current = undefined;
+    }
+    currentOfficeSourceKey.current = officeSourceKey;
 
     setState({
       phase: props.current.url ? 'loading' : 'idle',
@@ -232,10 +330,6 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       };
     }
 
-    const timerRef = window.setTimeout(() => {
-      setNewUrl(details);
-    }, 0);
-
     if (props.current.url) {
       if (externalLoadTimeout.current) {
         window.clearTimeout(externalLoadTimeout.current);
@@ -258,14 +352,18 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
               }
         );
       }, timeoutMs);
+      scheduleViewerRecovery(details, isActive);
     }
 
     return () => {
       isActive = false;
-      window.clearTimeout(timerRef);
       if (externalLoadTimeout.current) {
         window.clearTimeout(externalLoadTimeout.current);
         externalLoadTimeout.current = undefined;
+      }
+      if (officeRetryTimeout.current) {
+        window.clearTimeout(officeRetryTimeout.current);
+        officeRetryTimeout.current = undefined;
       }
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
@@ -294,6 +392,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         window.clearTimeout(externalLoadTimeout.current);
         externalLoadTimeout.current = undefined;
       }
+      if (officeRetryTimeout.current) {
+        window.clearTimeout(officeRetryTimeout.current);
+        officeRetryTimeout.current = undefined;
+      }
       setState((current) => ({ ...current, phase: 'ready' }));
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
@@ -317,6 +419,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     phase: state.phase,
     errorText: state.errorMessage || 'Unable to load document.',
     retry: retryLoad,
+    actionUrl: state.failedUrl || props.current?.url || '',
   };
 
   const loadingContent =
@@ -328,6 +431,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     typeof props.current?.errorRenderer === 'function'
       ? props.current.errorRenderer(rendererContext)
       : props.current?.errorRenderer;
+  const officeReloadContent =
+    typeof props.current?.officeReloadRenderer === 'function'
+      ? props.current.officeReloadRenderer(rendererContext)
+      : props.current?.officeReloadRenderer;
 
   useEffect(() => {
     if (!props.current || lastEmittedPhase.current === state.phase) {
@@ -340,6 +447,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       phase: state.phase,
       errorText: state.errorMessage || 'Unable to load document.',
       retry: retryLoad,
+      actionUrl: state.failedUrl || props.current.url,
     };
     props.current.onPhaseChange?.(event);
     if (state.phase === 'loading') {
@@ -433,9 +541,73 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
               >
                 {props.current?.retryButtonText}
               </button>
+              {props.current?.secondaryActionText && state.failedUrl ? (
+                <a
+                  href={state.failedUrl}
+                  target={
+                    props.current.secondaryActionMode === 'open'
+                      ? '_blank'
+                      : undefined
+                  }
+                  rel={
+                    props.current.secondaryActionMode === 'open'
+                      ? 'noreferrer'
+                      : undefined
+                  }
+                  download={
+                    props.current.secondaryActionMode === 'download'
+                      ? ''
+                      : undefined
+                  }
+                  style={{
+                    marginTop: '14px',
+                    marginLeft: '8px',
+                    display: 'inline-block',
+                    border: '1px solid #cbd5e1',
+                    background: '#fff',
+                    color: '#334155',
+                    borderRadius: '999px',
+                    padding: '8px 14px',
+                    textDecoration: 'none',
+                    font: 'inherit',
+                  }}
+                >
+                  {props.current.secondaryActionText}
+                </a>
+              ) : null}
             </div>
           )}
         </div>
+      ) : null}
+
+      {props.current?.viewer === 'office' && state.phase === 'ready' ? (
+        <button
+          type="button"
+          title={props.current?.officeReloadButtonTitle}
+          onClick={retryLoad}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            zIndex: 1001,
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            border: '1px solid rgba(0,0,0,0.12)',
+            background: 'rgba(255,255,255,0.85)',
+            color: '#475569',
+            fontSize: '16px',
+            lineHeight: 1,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: 0.5,
+            padding: 0,
+          }}
+        >
+          {officeReloadContent ?? props.current?.officeReloadButtonText}
+        </button>
       ) : null}
 
       {state.contentKind === 'external' ? (

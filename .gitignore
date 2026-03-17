@@ -7,6 +7,7 @@
 
 # dependencies
 /node_modules
+**/node_modules/
 
 # IDEs and editors
 /.idea
@@ -41,4 +42,4 @@ Thumbs.db
 .angular
 firebase-debug.log
 .firebase/*.cache
-packages/ngx-doc-viewer/node_modules/.cache/ng-packagr/1639936ff8ced466ecd65dd4c4ec194cb5aad13cf8fdb5c1dabd106b119115a0
+*dist/

@@ -19,6 +19,7 @@ import { EventEmitter } from '@angular/core';
 import {
   getDocxToHtml,
   getViewerDetails,
+  getViewerRecoveryPlan,
   googleCheckSubscription,
   iframeIsLoaded,
   isLocalFile,
@@ -39,6 +40,7 @@ export interface ViewerStateContext {
   phase: ViewerRenderPhase;
   errorText: string;
   retry: () => void;
+  actionUrl: string;
 }
 @Component({
   selector: 'ngx-doc-viewer',
@@ -173,6 +175,30 @@ export interface ViewerStateContext {
         position: absolute;
         z-index: 1000;
       }
+      .office-reload-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 1001;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: rgba(255, 255, 255, 0.85);
+        color: #475569;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+        padding: 0;
+      }
+      .office-reload-btn:hover {
+        opacity: 1;
+      }
       .overlay-full {
         width: 100%;
         height: 100%;
@@ -216,12 +242,20 @@ export class NgxDocViewerComponent
   @Input() loadingText = 'Loading document...';
   @Input() errorTextOverride = '';
   @Input() retryButtonText = 'Retry';
+  @Input() officeAutoRetry = false;
+  @Input() officeRetryDelay = 3000;
+  @Input() officeReloadButtonText = '↻';
+  @Input() officeReloadButtonTitle = 'Reload document';
+  @Input() secondaryActionText = '';
+  @Input() secondaryActionMode: 'open' | 'download' = 'open';
   @ContentChild('loadingContent', { read: TemplateRef })
   loadingTemplate?: TemplateRef<unknown>;
   @ContentChild('errorContent', { read: TemplateRef })
   errorTemplate?: TemplateRef<unknown>;
   @ContentChild('errorActions', { read: TemplateRef })
   errorActionsTemplate?: TemplateRef<unknown>;
+  @ContentChild('officeReloadContent', { read: TemplateRef })
+  officeReloadTemplate?: TemplateRef<unknown>;
   @ViewChildren('iframe') iframes?: QueryList<ElementRef> = undefined;
 
   public fullUrl?: SafeResourceUrl = undefined;
@@ -238,6 +272,9 @@ export class NgxDocViewerComponent
   private checkIFrameSubscription?: IFrameReloader = undefined;
   private loadVersion = 0;
   private externalLoadTimeoutId?: number = undefined;
+  private officeRetryTimeoutId?: number = undefined;
+  private officeAutoRetriedSourceKey?: string = undefined;
+  private currentOfficeSourceKey?: string = undefined;
   private lastEmittedPhase?: ViewerRenderPhase = undefined;
 
   constructor(
@@ -248,6 +285,7 @@ export class NgxDocViewerComponent
 
   ngOnDestroy(): void {
     this.clearExternalLoadTimeout();
+    this.clearOfficeRetry();
     if (this.checkIFrameSubscription) {
       this.checkIFrameSubscription.unsubscribe();
     }
@@ -313,9 +351,16 @@ export class NgxDocViewerComponent
           this.viewerUrl,
         );
       }
+      const officeSourceKey =
+        this.configuredViewer === 'office' ? viewerDetails.url : undefined;
+      if (officeSourceKey !== this.currentOfficeSourceKey) {
+        this.officeAutoRetriedSourceKey = undefined;
+      }
+      this.currentOfficeSourceKey = officeSourceKey;
       this.docHtml = '';
       this.errorText = '';
       this.failedUrl = this.url;
+      this.clearOfficeRetry();
       this.updateTemplateContexts();
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
@@ -342,25 +387,8 @@ export class NgxDocViewerComponent
         this.showIframe = true;
         this.updateTemplateContexts();
         this.scheduleExternalLoadTimeout(loadVersion);
-        // see:
-        // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
-        // hack to reload iframe if it's not loaded.
-        // would maybe be better to use view.officeapps.live.com but seems not to work with sas token.
         this.cdr.detectChanges();
-        if (
-          this.configuredViewer === 'google' &&
-          this.googleCheckContentLoaded
-        ) {
-          this.ngZone.runOutsideAngular(() => {
-            window.setTimeout(() => {
-              const iframe = this.iframes?.first
-                ?.nativeElement as HTMLIFrameElement;
-              if (iframe) {
-                this.reloadIframe(iframe);
-              }
-            }, 0);
-          });
-        }
+        this.scheduleViewerRecovery();
       } else if (this.configuredViewer === 'mammoth') {
         this.setRenderPhase('loading');
         this.externalViewer = false;
@@ -397,6 +425,7 @@ export class NgxDocViewerComponent
     this.retryNonce += 1;
     const retryVersion = ++this.loadVersion;
     this.clearExternalLoadTimeout();
+    this.clearOfficeRetry();
     this.errorText = '';
     this.setRenderPhase(this.url ? 'loading' : 'idle');
     this.updateTemplateContexts();
@@ -440,6 +469,7 @@ export class NgxDocViewerComponent
         this.domSanitizer.bypassSecurityTrustResourceUrl(finalUrl);
       this.showIframe = true;
       this.scheduleExternalLoadTimeout(retryVersion);
+      this.scheduleViewerRecovery();
       this.updateTemplateContexts();
       this.cdr.detectChanges();
     }
@@ -454,10 +484,47 @@ export class NgxDocViewerComponent
     );
   }
 
+  private scheduleViewerRecovery() {
+    const recoveryPlan = getViewerRecoveryPlan({
+      viewer: this.configuredViewer,
+      googleCheckContentLoaded: this.googleCheckContentLoaded,
+      officeAutoRetry: this.officeAutoRetry,
+    });
+    for (const mode of recoveryPlan.modes) {
+      if (mode === 'google-probe') {
+        this.scheduleGoogleRecovery();
+      }
+      if (mode === 'office-auto-retry') {
+        this.scheduleOfficeRetry();
+      }
+    }
+  }
+
+  private scheduleGoogleRecovery() {
+    if (
+      this.configuredViewer !== 'google' ||
+      !this.googleCheckContentLoaded
+    ) {
+      return;
+    }
+    // see:
+    // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
+    // hack to reload iframe if it's not loaded.
+    this.ngZone.runOutsideAngular(() => {
+      window.setTimeout(() => {
+        const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
+        if (iframe) {
+          this.reloadIframe(iframe);
+        }
+      }, 0);
+    });
+  }
+
   iframeLoaded() {
     const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
       this.clearExternalLoadTimeout();
+      this.clearOfficeRetry();
       this.setRenderPhase('ready');
       this.updateTemplateContexts();
       this.loaded.emit(undefined);
@@ -469,6 +536,7 @@ export class NgxDocViewerComponent
 
   objectLoaded() {
     this.clearExternalLoadTimeout();
+    this.clearOfficeRetry();
     this.setRenderPhase('ready');
     this.updateTemplateContexts();
   }
@@ -528,6 +596,35 @@ export class NgxDocViewerComponent
     }
   }
 
+  private clearOfficeRetry() {
+    if (this.officeRetryTimeoutId) {
+      window.clearTimeout(this.officeRetryTimeoutId);
+      this.officeRetryTimeoutId = undefined;
+    }
+  }
+
+  private scheduleOfficeRetry() {
+    if (
+      this.configuredViewer !== 'office' ||
+      !this.officeAutoRetry ||
+      !this.currentOfficeSourceKey ||
+      this.officeAutoRetriedSourceKey === this.currentOfficeSourceKey
+    ) {
+      return;
+    }
+    this.clearOfficeRetry();
+    this.officeRetryTimeoutId = window.setTimeout(() => {
+      if (
+        !this.currentOfficeSourceKey ||
+        this.officeAutoRetriedSourceKey === this.currentOfficeSourceKey
+      ) {
+        return;
+      }
+      this.officeAutoRetriedSourceKey = this.currentOfficeSourceKey;
+      this.ngZone.run(() => this.retryLoad());
+    }, this.officeRetryDelay);
+  }
+
   get displayedErrorText() {
     return this.errorTextOverride || this.errorText || 'Unable to load document.';
   }
@@ -550,6 +647,7 @@ export class NgxDocViewerComponent
       phase: this.renderPhase,
       errorText: this.displayedErrorText,
       retry: () => this.retryLoad(),
+      actionUrl: this.failedUrl || this.url,
     };
   }
 

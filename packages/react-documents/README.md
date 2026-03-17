@@ -51,6 +51,13 @@ Props:
  - loadingRenderer: text, JSX, or a render function shown in the built-in loading overlay. Defaults to `Loading document...`
  - errorRenderer: text, JSX, or a render function shown in the built-in error overlay. By default it shows the viewer, failing URL, and a retry button.
  - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`
+ - officeAutoRetry: automatically retries the Office viewer once after `officeRetryDelay`. Defaults to `false`
+ - officeRetryDelay: delay in milliseconds before the one-time Office auto retry. Defaults to `3000`
+ - officeReloadButtonText: text shown in the persistent Office reload button. Defaults to `↻`
+ - officeReloadButtonTitle: tooltip/title for the persistent Office reload button. Defaults to `Reload document`
+ - officeReloadRenderer: optional JSX or render function used instead of the default Office reload button content
+ - secondaryActionText: optional text for a built-in secondary error action button, for example `Open source` or `Download`
+ - secondaryActionMode: controls the built-in secondary action behavior. Supported values: `open` or `download`. Defaults to `open`
 
 Example with custom loading markup:
 
@@ -72,10 +79,10 @@ Example with custom error markup:
 <DocumentViewer
   url={selectedDoc}
   viewer={selectedViewer.name}
-  errorRenderer={({ viewer, url, retry }) => (
+  errorRenderer={({ viewer, actionUrl, retry }) => (
     <div style={{ textAlign: 'center' }}>
       <div>Preview unavailable for {viewer}.</div>
-      <div>{url}</div>
+      <div>{actionUrl}</div>
       <button type="button" onClick={retry}>Retry</button>
     </div>
   )}
@@ -90,6 +97,17 @@ There are some issues loading document in the google viewer. See: https://stacko
 Output:
 
 - loaded: emitted when the current iframe is ready. Can be used to hook into custom loading or telemetry flows.
+- onLoading: callback fired when the viewer enters the `loading` phase.
+- onError: callback fired when the viewer enters the `error` phase.
+- onPhaseChange: callback fired whenever the internal phase changes to `idle`, `loading`, `ready`, or `error`.
+
+Lifecycle callback payload includes:
+- `viewer`
+- `url`
+- `phase`
+- `errorText`
+- `retry()`
+- `actionUrl`
 
 ### Recent behavior improvements
 
