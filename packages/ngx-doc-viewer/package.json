@@ -1,6 +1,6 @@
 {
   "name": "ngx-doc-viewer",
-  "version": "16.0.0",
+  "version": "21.0.0",
   "private": false,
   "license": "MIT",
   "description": "Angular document viewer.",
@@ -20,12 +20,17 @@
     }
   ],
   "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/ngx-doc-viewer",
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json",
+    "test": "jest --config jest.config.ts",
+    "lint": "eslint src"
+  },
   "peerDependencies": {
-    "@angular/core": ">= 10.0.0",
-    "@angular/platform-browser": ">= 10.0.0",
-    "@angular/common": ">= 10.0.0"
+    "@angular/core": ">= 15.0.0",
+    "@angular/platform-browser": ">= 15.0.0",
+    "@angular/common": ">= 15.0.0"
   },
   "dependencies": {
-    "docviewhelper": ">= 0.0.1"
+    "docviewhelper": ">= 0.0.2"
   }
 }

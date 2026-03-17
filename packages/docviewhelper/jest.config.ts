@@ -1,8 +1,7 @@
 /* eslint-disable */
 export default {
   displayName: 'docviewer-helper',
-  preset: '../../../jest.preset.js',
-  globals: {},
+  testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]sx?$': [
       'ts-jest',
@@ -12,5 +11,5 @@ export default {
     ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  coverageDirectory: '../../../coverage/packages/docviewer/helper',
+  coverageDirectory: '../../coverage/packages/docviewhelper',
 };

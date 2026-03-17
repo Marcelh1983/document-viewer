@@ -1,9 +1,7 @@
 /* eslint-disable */
 export default {
   displayName: 'ngx-doc-viewer',
-  preset: '../../jest.preset.js',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
-  globals: {},
   coverageDirectory: '../../coverage/packages/ngx-doc-viewer',
   transform: {
     '^.+\\.(ts|mjs|js|html)$': [

@@ -1,6 +1,6 @@
 {
   "name": "docviewhelper",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "license": "MIT",
   "description": "Helper for ngx-doc-viewer and react-documents.",
   "author": {
@@ -12,14 +12,24 @@
     "type": "git",
     "url": "git+https://github.com/Marcelh1983/document-viewer.git"
   },
-  "keywords": [
-    "ngx-doc-viewer",
-    "react-documents"
-  ],
-  "main": "index.js",
-  "types": "packages/react-documents/src/index.d.ts",
+  "keywords": ["ngx-doc-viewer", "react-documents"],
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "bugs": {
     "url": "https://github.com/Marcelh1983/document-viewer/issues"
   },
-  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/docviewhelper"
+  "homepage": "https://github.com/Marcelh1983/document-viewer/tree/main/packages/docviewhelper",
+  "scripts": {
+    "build": "tsup",
+    "test": "jest --config jest.config.ts",
+    "lint": "eslint src"
+  }
 }
