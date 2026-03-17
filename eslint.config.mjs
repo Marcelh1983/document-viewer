@@ -9,7 +9,6 @@ export default tseslint.config(
     extends: [...tseslint.configs.recommended],
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/naming-convention': 'warn',
     },
   },
   {

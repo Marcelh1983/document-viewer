@@ -1,7 +1,7 @@
 # data
 
-This library was generated with [Nx](https://nx.dev).
+Shared data models and utilities for the document viewer project.
 
 ## Running unit tests
 
-Run `nx test data` to execute the unit tests via [Jest](https://jestjs.io).
+Run `pnpm test` to execute the unit tests via [Jest](https://jestjs.io).

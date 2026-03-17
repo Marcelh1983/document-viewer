@@ -13,7 +13,6 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { EventEmitter } from '@angular/core';
-// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   getDocxToHtml,
   getViewerDetails,

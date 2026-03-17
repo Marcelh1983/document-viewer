@@ -41,5 +41,3 @@ Thumbs.db
 .angular
 firebase-debug.log
 .firebase/*.cache
-
-.nx/cache

@@ -3,10 +3,10 @@ import { configs as angularConfigs } from 'angular-eslint';
 
 export default [
   ...rootConfig,
+  ...angularConfigs.tsRecommended,
+  ...angularConfigs.templateRecommended,
   {
     files: ['**/*.ts'],
-    extends: [...angularConfigs.tsRecommended],
-    processor: angularConfigs.processInlineTemplates,
     rules: {
       '@angular-eslint/component-selector': [
         'error',
@@ -17,10 +17,5 @@ export default [
         { type: 'attribute', prefix: 'documentViewer', style: 'camelCase' },
       ],
     },
-  },
-  {
-    files: ['**/*.html'],
-    extends: [...angularConfigs.templateRecommended],
-    rules: {},
   },
 ];
