@@ -26,7 +26,6 @@ import {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 @Component({
-  // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'ngx-doc-viewer',
   templateUrl: 'document-viewer.component.html',
   styles: [

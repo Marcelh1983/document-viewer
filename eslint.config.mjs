@@ -2,18 +2,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.d.ts'],
+    ignores: ['dist/**', 'node_modules/**', '**/*.d.ts', '**/*.html'],
   },
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', '**/*.mjs'],
     extends: [...tseslint.configs.recommended],
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': 'warn',
     },
-  },
-  {
-    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
-    extends: [...tseslint.configs.recommended],
-    rules: {},
   },
 );
