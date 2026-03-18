@@ -6,7 +6,7 @@ Documents that are publicly available can be shown in an iframe using the google
 
 Pdf files and word document that are not publicly available can be shown using the mammoth viewer or pdf viewer by passing an objectUrl.
 
-<a href="https://angular-doc-viewer.firebaseapp.com/">View demo</a>
+<a href="https://angular-doc-viewer.web.app/">View demo</a>
 
 <a href="https://github.com/Marcelh1983/document-viewer/blob/main/packages/ngx-doc-viewer/changelog.md">Changes</a>
 
@@ -54,7 +54,7 @@ Input:
   - all: adds an overlay to the whole iframe, which makes nothing in the document clickable/selectable
   - popout: adds an overlay over googles popout button or office popout and menu which disables just this button/menu but keeps giving the possibility to select text. The popout button is still visible (for google during a few seconds) but not clickable.
   - popout-hide: see popup, instead of an transparent overlay a white one. This really hides the button but you'll see a white block while loading for the google viewer.
- - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
+ - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://angular-doc-viewer.web.app/"
  - loadingText: fallback text shown in the built-in loading overlay. Defaults to `Loading document...`
  - errorTextOverride: fallback text shown in the built-in error overlay. Defaults to the runtime error message.
  - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`

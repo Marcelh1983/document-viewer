@@ -2,8 +2,8 @@
   "hosting": [
     {
       "target": "demo-angular",
-      "public": "dist/apps/demo-angular",
-      "predeploy": ["ng build demo-angular --configuration=production"],
+      "public": "dist/apps/demo-angular/browser",
+      "predeploy": ["pnpm build:demo-angular"],
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
