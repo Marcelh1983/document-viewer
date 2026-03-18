@@ -18,9 +18,9 @@
     "publish:ngx-doc-viewer": "pnpm build:ngx-doc-viewer && npm publish ./dist/packages/ngx-doc-viewer --tag latest",
     "publish:ngx-doc-viewer:next": "pnpm build:ngx-doc-viewer && npm publish ./dist/packages/ngx-doc-viewer --tag next",
     "publish:all": "pnpm publish:docviewhelper && pnpm publish:ngx-doc-viewer && pnpm publish:react-documents && pnpm deploy:demo:angular && pnpm deploy:demo:react",
-    "version:patch": "node tools/bump-version.mjs patch",
-    "version:minor": "node tools/bump-version.mjs minor",
-    "version:major": "node tools/bump-version.mjs major",
+    "release:patch": "node tools/bump-version.mjs patch && pnpm publish:all",
+    "release:minor": "node tools/bump-version.mjs minor && pnpm publish:all",
+    "release:major": "node tools/bump-version.mjs major && pnpm publish:all",
     "deploy:demo:angular": "firebase use angular-doc-viewer && firebase deploy --only hosting:demo-angular",
     "deploy:demo:react": "firebase use angular-doc-viewer && firebase deploy --only hosting:demo-react"
   },
