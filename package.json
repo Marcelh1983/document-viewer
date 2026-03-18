@@ -17,7 +17,7 @@
     "publish:react-documents:next": "pnpm build:react-documents && npm publish ./dist/packages/react-documents --tag next",
     "publish:ngx-doc-viewer": "pnpm build:ngx-doc-viewer && npm publish ./dist/packages/ngx-doc-viewer --tag latest",
     "publish:ngx-doc-viewer:next": "pnpm build:ngx-doc-viewer && npm publish ./dist/packages/ngx-doc-viewer --tag next",
-    "publish:all": "pnpm publish:docviewhelper && pnpm publish:ngx-doc-viewer && pnpm publish:react-documents",
+    "publish:all": "pnpm publish:docviewhelper && pnpm publish:ngx-doc-viewer && pnpm publish:react-documents && pnpm deploy:demo:angular && pnpm deploy:demo:react",
     "version:patch": "node tools/bump-version.mjs patch",
     "version:minor": "node tools/bump-version.mjs minor",
     "version:major": "node tools/bump-version.mjs major",
