@@ -687,6 +687,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           id="iframe"
           title="iframe"
           frameBorder="0"
+          allow="clipboard-read; clipboard-write"
           src={state.url}
         ></iframe>
       ) : state.contentKind === 'inline' ? (
