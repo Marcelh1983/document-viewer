@@ -30,6 +30,15 @@
     "@angular/platform-browser": ">= 15.0.0",
     "@angular/common": ">= 15.0.0"
   },
+  "main": "./fesm2022/ngx-doc-viewer.mjs",
+  "module": "./fesm2022/ngx-doc-viewer.mjs",
+  "types": "./types/ngx-doc-viewer.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/ngx-doc-viewer.d.ts",
+      "default": "./fesm2022/ngx-doc-viewer.mjs"
+    }
+  },
   "dependencies": {
     "docviewhelper": "workspace:*"
   }
