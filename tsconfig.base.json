@@ -16,9 +16,9 @@
     "baseUrl": ".",
     "paths": {
       "@document-viewer/data": ["libs/data/src/index.ts"],
-      "docviewhelper": ["packages/docviewhelper/src/index.ts"],
-      "ngx-doc-viewer": ["packages/ngx-doc-viewer/src/index.ts"],
-      "react-documents": ["packages/react-documents/src/index.ts"]
+      "docviewhelper": ["dist/packages/docviewhelper"],
+      "ngx-doc-viewer": ["dist/packages/ngx-doc-viewer"],
+      "react-documents": ["dist/packages/react-documents"]
     }
   },
   "exclude": ["node_modules", "tmp", "dist"]
