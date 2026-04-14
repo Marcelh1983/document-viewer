@@ -12,8 +12,10 @@ const packages = [
 ];
 
 const bumpType = process.argv[2];
+const pkgFilter = process.argv[3];
+
 if (!['patch', 'minor', 'major'].includes(bumpType)) {
-  console.error('Usage: node tools/bump-version.mjs <patch|minor|major>');
+  console.error('Usage: node tools/bump-version.mjs <patch|minor|major> [package-name]');
   process.exit(1);
 }
 
@@ -25,7 +27,11 @@ const bump = (version, type) => {
   return `${major}.${minor}.${patch}`;
 };
 
-for (const pkg of packages) {
+const filteredPackages = pkgFilter
+  ? packages.filter(p => p.endsWith(pkgFilter))
+  : packages;
+
+for (const pkg of filteredPackages) {
   const pkgPath = resolve(root, pkg, 'package.json');
   const json = JSON.parse(readFileSync(pkgPath, 'utf-8'));
   const oldVersion = json.version;
