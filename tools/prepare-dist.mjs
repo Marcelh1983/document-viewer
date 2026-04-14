@@ -4,7 +4,7 @@
 // - Resolves workspace:* dependencies to their actual versions
 // - Removes the scripts field
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -46,6 +46,13 @@ delete pkg.scripts;
 const outPath = join(root, 'dist', 'packages', pkgName, 'package.json');
 writeFileSync(outPath, JSON.stringify(pkg, null, 2) + '\n');
 console.log(`Wrote ${outPath}`);
+
+const readmeSrc = join(root, 'packages', pkgName, 'README.md');
+const readmeDest = join(root, 'dist', 'packages', pkgName, 'README.md');
+if (existsSync(readmeSrc)) {
+  copyFileSync(readmeSrc, readmeDest);
+  console.log(`Copied README.md to ${readmeDest}`);
+}
 
 function rewritePaths(value) {
   if (typeof value === 'string') return value.replace(/^(\.\/)?dist\//, './');
