@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 export default {
   displayName: 'react-documents',
   testEnvironment: 'jsdom',

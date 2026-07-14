@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 export default {
   displayName: 'ngx-doc-viewer',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],

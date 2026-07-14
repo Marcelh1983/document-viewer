@@ -1,9 +1,10 @@
 import React, { CSSProperties, ReactNode, useEffect, useRef, useState } from 'react';
 import {
   IFrameReloader,
+  ViewerRecoveryConfig,
+  ViewerRecoveryController,
   googleCheckSubscription,
   getViewerDetails,
-  getViewerRecoveryPlan,
   getDocxToHtml,
   iframeIsLoaded,
   isLocalFile,
@@ -76,7 +77,7 @@ interface Props {
 }
 
 const defaultProps: Props = {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+   
   loaded: () => {},
   onLoading: () => {},
   onError: () => {},
@@ -118,6 +119,16 @@ interface State {
   retryNonce: number;
 }
 
+const buildRecoveryConfig = (p: Props): ViewerRecoveryConfig => ({
+  viewer: p.viewer,
+  googleCheckContentLoaded: p.googleCheckContentLoaded,
+  googleCheckInterval: p.googleCheckInterval,
+  googleMaxChecks: p.googleMaxChecks,
+  googleFinalRetryDelay: p.googleFinalRetryDelay,
+  officeAutoRetry: p.officeAutoRetry,
+  officeRetryDelay: p.officeRetryDelay,
+});
+
 export const DocumentViewer = (inputProps: Partial<Props>) => {
   const iframeRef = useRef(null);
   const [state, setState] = useState({
@@ -131,14 +142,14 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     retryNonce: 0,
   } as State);
   const checkIFrameSubscription = useRef<IFrameReloader | undefined>(undefined);
-  const props = useRef<Props | undefined>(undefined);
-  const externalLoadTimeout = useRef<number | undefined>(undefined);
-  const googleFinalRetryTimeout = useRef<number | undefined>(undefined);
-  const googleFinalRetriedSourceKey = useRef<string | undefined>(undefined);
-  const currentGoogleSourceKey = useRef<string | undefined>(undefined);
-  const officeRetryTimeout = useRef<number | undefined>(undefined);
-  const officeAutoRetriedSourceKey = useRef<string | undefined>(undefined);
-  const currentOfficeSourceKey = useRef<string | undefined>(undefined);
+  const props = useRef<Props>({ ...defaultProps, ...inputProps });
+  // Keep the latest merged props available to render + callbacks without forcing
+  // the load effect below to re-run on every parent render.
+  props.current = { ...defaultProps, ...inputProps };
+  const mammothTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+  const recovery = useRef<ViewerRecoveryController | undefined>(undefined);
   const lastEmittedPhase = useRef<ViewerRenderPhase | undefined>(undefined);
 
   const setNewUrl = async (details: {
@@ -165,17 +176,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     }
   };
 
-  const scheduleGoogleRecovery = (details: {
+  const scheduleGoogleProbe = (details: {
     url: string;
     externalViewer: boolean;
   }) => {
-    if (
-      !props.current ||
-      props.current.viewer !== 'google' ||
-      props.current.googleCheckContentLoaded !== true
-    ) {
-      return;
-    }
     window.setTimeout(() => {
       if (!props.current) {
         return;
@@ -184,102 +188,33 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     }, 0);
   };
 
-  const scheduleOfficeRecovery = (isActive: boolean) => {
-    if (
-      !props.current ||
-      props.current.viewer !== 'office' ||
-      !props.current.officeAutoRetry
-    ) {
-      return;
-    }
-    if (officeRetryTimeout.current) {
-      window.clearTimeout(officeRetryTimeout.current);
-    }
-    if (
-      currentOfficeSourceKey.current &&
-      officeAutoRetriedSourceKey.current !== currentOfficeSourceKey.current
-    ) {
-      const retryDelay = props.current.officeRetryDelay;
-      officeRetryTimeout.current = window.setTimeout(() => {
-        if (
-          !isActive ||
-          !currentOfficeSourceKey.current ||
-          officeAutoRetriedSourceKey.current === currentOfficeSourceKey.current
-        ) {
-          return;
-        }
-        officeAutoRetriedSourceKey.current = currentOfficeSourceKey.current;
-        setState((current) => ({
-          ...current,
-          phase: 'loading',
-          errorMessage: '',
-          retryNonce: current.retryNonce + 1,
-        }));
-      }, retryDelay);
-    }
-  };
-
-  const scheduleGoogleFinalRetry = (isActive: boolean) => {
-    const recoveryPlan = getViewerRecoveryPlan({
-      viewer: props.current?.viewer ?? 'google',
-      googleCheckContentLoaded: props.current?.googleCheckContentLoaded,
-      googleFinalRetryDelay: props.current?.googleFinalRetryDelay,
-      officeAutoRetry: props.current?.officeAutoRetry,
-    });
-    if (
-      !recoveryPlan.modes.includes('google-final-retry') ||
-      !currentGoogleSourceKey.current ||
-      googleFinalRetriedSourceKey.current === currentGoogleSourceKey.current
-    ) {
-      return false;
-    }
-    if (googleFinalRetryTimeout.current) {
-      window.clearTimeout(googleFinalRetryTimeout.current);
-    }
-    googleFinalRetryTimeout.current = window.setTimeout(() => {
-      if (
-        !isActive ||
-        !currentGoogleSourceKey.current ||
-        googleFinalRetriedSourceKey.current === currentGoogleSourceKey.current
-      ) {
-        return;
-      }
-      googleFinalRetriedSourceKey.current = currentGoogleSourceKey.current;
-      setState((current) => ({
-        ...current,
-        phase: 'loading',
-        errorMessage: '',
-        retryNonce: current.retryNonce + 1,
-      }));
-    }, props.current?.googleFinalRetryDelay ?? 0);
-    return true;
-  };
-
-  const scheduleViewerRecovery = (
-    details: { url: string; externalViewer: boolean },
-    isActive: boolean
-  ) => {
-    const recoveryPlan = getViewerRecoveryPlan({
-      viewer: props.current?.viewer ?? 'google',
-      googleCheckContentLoaded: props.current?.googleCheckContentLoaded,
-      googleFinalRetryDelay: props.current?.googleFinalRetryDelay,
-      officeAutoRetry: props.current?.officeAutoRetry,
-    });
-    for (const mode of recoveryPlan.modes) {
-      if (mode === 'google-probe') {
-        scheduleGoogleRecovery(details);
-      }
-      if (mode === 'google-final-retry') {
-        continue;
-      }
-      if (mode === 'office-auto-retry') {
-        scheduleOfficeRecovery(isActive);
-      }
-    }
-  };
-
   useEffect(() => {
-    props.current = { ...defaultProps, ...inputProps };
+    if (!recovery.current) {
+      recovery.current = new ViewerRecoveryController(
+        buildRecoveryConfig(props.current),
+        {
+          triggerRetry: () =>
+            setState((current) => ({
+              ...current,
+              phase: 'loading',
+              errorMessage: '',
+              retryNonce: current.retryNonce + 1,
+            })),
+          reportTimeout: () =>
+            setState((current) =>
+              current.phase !== 'loading'
+                ? current
+                : {
+                    ...current,
+                    phase: 'error',
+                    errorMessage: `The ${props.current?.viewer} viewer did not finish loading in time.`,
+                  }
+            ),
+        }
+      );
+    }
+    recovery.current.configure(buildRecoveryConfig(props.current));
+
     let isActive = true;
     let details = getViewerDetails(
       props.current.url,
@@ -303,18 +238,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         props.current.viewerUrl
       );
     }
-    const officeSourceKey =
-      props.current.viewer === 'office' ? details.url : undefined;
-    if (officeSourceKey !== currentOfficeSourceKey.current) {
-      officeAutoRetriedSourceKey.current = undefined;
-    }
-    currentOfficeSourceKey.current = officeSourceKey;
-    const googleSourceKey =
-      props.current.viewer === 'google' ? details.url : undefined;
-    if (googleSourceKey !== currentGoogleSourceKey.current) {
-      googleFinalRetriedSourceKey.current = undefined;
-    }
-    currentGoogleSourceKey.current = googleSourceKey;
+    recovery.current.trackSource(details.url);
 
     setState({
       phase: props.current.url ? 'loading' : 'idle',
@@ -335,11 +259,36 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       retryNonce: state.retryNonce,
     });
     if (props.current.viewer === 'mammoth') {
+      if (mammothTimeout.current) {
+        clearTimeout(mammothTimeout.current);
+        mammothTimeout.current = undefined;
+      }
+      if (props.current.url) {
+        mammothTimeout.current = setTimeout(() => {
+          if (!isActive) {
+            return;
+          }
+          setState((current) =>
+            current.phase !== 'loading'
+              ? current
+              : {
+                  ...current,
+                  phase: 'error',
+                  contentKind: 'inline',
+                  errorMessage: 'The document did not finish loading in time.',
+                }
+          );
+        }, 15000);
+      }
       const setHtml = async () => {
         try {
           const docHtml = { __html: await getDocxToHtml(details.url) };
           if (!isActive) {
             return;
+          }
+          if (mammothTimeout.current) {
+            clearTimeout(mammothTimeout.current);
+            mammothTimeout.current = undefined;
           }
           setState({
             phase: 'ready',
@@ -354,6 +303,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         } catch (error) {
           if (!isActive) {
             return;
+          }
+          if (mammothTimeout.current) {
+            clearTimeout(mammothTimeout.current);
+            mammothTimeout.current = undefined;
           }
           setState({
             phase: 'error',
@@ -371,14 +324,11 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       setHtml();
       return () => {
         isActive = false;
-        if (externalLoadTimeout.current) {
-          window.clearTimeout(externalLoadTimeout.current);
-          externalLoadTimeout.current = undefined;
+        if (mammothTimeout.current) {
+          clearTimeout(mammothTimeout.current);
+          mammothTimeout.current = undefined;
         }
-        if (googleFinalRetryTimeout.current) {
-          window.clearTimeout(googleFinalRetryTimeout.current);
-          googleFinalRetryTimeout.current = undefined;
-        }
+        recovery.current?.clearTimers();
         if (checkIFrameSubscription && checkIFrameSubscription.current) {
           checkIFrameSubscription.current.unsubscribe();
         }
@@ -386,52 +336,33 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
     }
 
     if (props.current.url) {
-      if (externalLoadTimeout.current) {
-        window.clearTimeout(externalLoadTimeout.current);
+      const plan = recovery.current.beginExternalLoad(() => isActive);
+      if (plan.modes.includes('google-probe')) {
+        scheduleGoogleProbe(details);
       }
-      const timeoutMs =
-        props.current.viewer === 'google'
-          ? Math.max(props.current.googleCheckInterval * props.current.googleMaxChecks + 2000, 15000)
-          : 15000;
-      externalLoadTimeout.current = window.setTimeout(() => {
-        if (!isActive) {
-          return;
-        }
-        if (scheduleGoogleFinalRetry(isActive)) {
-          return;
-        }
-        setState((current) =>
-          current.phase !== 'loading'
-            ? current
-            : {
-                ...current,
-                phase: 'error',
-                errorMessage: `The ${props.current?.viewer} viewer did not finish loading in time.`,
-              }
-        );
-      }, timeoutMs);
-      scheduleViewerRecovery(details, isActive);
     }
 
     return () => {
       isActive = false;
-      if (externalLoadTimeout.current) {
-        window.clearTimeout(externalLoadTimeout.current);
-        externalLoadTimeout.current = undefined;
-      }
-      if (googleFinalRetryTimeout.current) {
-        window.clearTimeout(googleFinalRetryTimeout.current);
-        googleFinalRetryTimeout.current = undefined;
-      }
-      if (officeRetryTimeout.current) {
-        window.clearTimeout(officeRetryTimeout.current);
-        officeRetryTimeout.current = undefined;
-      }
+      recovery.current?.clearTimers();
       if (checkIFrameSubscription && checkIFrameSubscription.current) {
         checkIFrameSubscription.current.unsubscribe();
       }
     };
-  }, [inputProps, state.retryNonce]);
+  }, [
+    inputProps.url,
+    inputProps.viewer,
+    inputProps.queryParams,
+    inputProps.viewerUrl,
+    inputProps.overrideLocalhost,
+    inputProps.googleCheckContentLoaded,
+    inputProps.googleCheckInterval,
+    inputProps.googleMaxChecks,
+    inputProps.googleFinalRetryDelay,
+    inputProps.officeAutoRetry,
+    inputProps.officeRetryDelay,
+    state.retryNonce,
+  ]);
 
   const reloadIframe = (
     iframe: HTMLIFrameElement,
@@ -450,18 +381,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
       iframeRef.current !== null &&
       iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)
     ) {
-      if (externalLoadTimeout.current) {
-        window.clearTimeout(externalLoadTimeout.current);
-        externalLoadTimeout.current = undefined;
-      }
-      if (googleFinalRetryTimeout.current) {
-        window.clearTimeout(googleFinalRetryTimeout.current);
-        googleFinalRetryTimeout.current = undefined;
-      }
-      if (officeRetryTimeout.current) {
-        window.clearTimeout(officeRetryTimeout.current);
-        officeRetryTimeout.current = undefined;
-      }
+      recovery.current?.notifyLoaded();
       setState((current) => ({ ...current, phase: 'ready' }));
       if (props.current.loaded) props.current.loaded();
       if (checkIFrameSubscription.current) {
@@ -471,6 +391,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
   };
 
   const retryLoad = () => {
+    recovery.current?.clearTimers();
     setState((current) => ({
       ...current,
       phase: props.current?.url ? 'loading' : 'idle',
@@ -702,10 +623,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           data={state.url}
           style={{ width: '100%', height: '100%', display: 'block' }}
           onLoad={() => {
-            if (externalLoadTimeout.current) {
-              window.clearTimeout(externalLoadTimeout.current);
-              externalLoadTimeout.current = undefined;
-            }
+            recovery.current?.notifyLoaded();
             setState((current) => ({ ...current, phase: 'ready' }));
           }}
           type="application/pdf"

@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 export default {
   displayName: 'demo-react',
   preset: 'ts-jest',

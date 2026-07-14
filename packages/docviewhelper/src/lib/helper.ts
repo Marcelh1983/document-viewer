@@ -1,5 +1,6 @@
-// eslint-disable-next-line no-var
-declare var mammoth: any;
+declare const mammoth: {
+  convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
+};
 import { IFrameReloader, ViewerRecoveryPlan, ViewerType } from './model';
 
 export const fileToArray = (url: string): Promise<ArrayBuffer> => {
@@ -7,14 +8,15 @@ export const fileToArray = (url: string): Promise<ArrayBuffer> => {
     try {
       const request = new XMLHttpRequest();
       request.open('GET', url, true);
-      request.responseType = 'blob';
+      request.responseType = 'arraybuffer';
       request.onload = () => {
-        const reader = new FileReader();
-        reader.readAsArrayBuffer(request.response);
-        reader.onloadend = () => {
-          resolve(reader.result as ArrayBuffer);
-        };
+        if (request.status >= 200 && request.status < 300) {
+          resolve(request.response as ArrayBuffer);
+        } else {
+          reject(`error while retrieving file ${url} (status ${request.status}).`);
+        }
       };
+      request.onerror = () => reject(`error while retrieving file ${url}.`);
       request.send();
     } catch {
       reject(`error while retrieving file ${url}.`);
@@ -62,7 +64,7 @@ export const getbaseUrl = (): string => {
 };
 
 export const getLocation = (href: string) => {
-  // eslint-disable-next-line no-useless-escape
+   
   const match = href.match(
     /^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/,
   );
@@ -92,7 +94,7 @@ export const getDocxToHtml = async (url: string) => {
 };
 
 export const googleCheckSubscription = (): IFrameReloader => {
-  let subscription: any = null;
+  let subscription: ReturnType<typeof setInterval> | undefined = undefined;
   let checkCount = 0;
   return {
     subscribe: (iframe: HTMLIFrameElement, interval = 3000, maxChecks = 5) => {
@@ -104,12 +106,10 @@ export const googleCheckSubscription = (): IFrameReloader => {
           }
           reloadIFrame(iframe);
         }, interval);
-        return subscription;
-      } else {
-        if (subscription) {
-          clearInterval(subscription);
-        }
+      } else if (subscription) {
+        clearInterval(subscription);
       }
+      return subscription;
     },
     unsubscribe: () => {
       if (subscription) {
@@ -124,20 +124,12 @@ export const iframeIsLoaded = (iframe: HTMLIFrameElement) => {
   // so if contentDocument = null then it's loaded.
   let isLoaded = false;
   try {
-    if (!internetExplorer()) {
-      isLoaded = !iframe?.contentDocument;
-    } else {
-      isLoaded = !iframe?.contentWindow?.document;
-    }
+    isLoaded = !iframe?.contentDocument;
   } catch {
     // ignore message Blocked a frame with origin "http://..." from accessing a cross-origin frame.
   }
   return isLoaded;
 };
-
-const internetExplorer = () =>
-  /MSIE (\d+\.\d+);/.test(navigator.userAgent) ||
-  navigator.userAgent.indexOf('Trident/') > -1;
 
 export const getViewerDetails = (
   url: string,

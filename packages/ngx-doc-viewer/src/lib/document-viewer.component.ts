@@ -19,15 +19,16 @@ import { EventEmitter } from '@angular/core';
 import {
   getDocxToHtml,
   getViewerDetails,
-  getViewerRecoveryPlan,
   googleCheckSubscription,
   iframeIsLoaded,
   isLocalFile,
   replaceLocalUrl,
   IFrameReloader,
+  ViewerRecoveryConfig,
+  ViewerRecoveryController,
 } from 'docviewhelper';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
+ 
 export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
 type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
 interface ViewerTemplateContext {
@@ -272,13 +273,7 @@ export class NgxDocViewerComponent
   public errorTemplateContext: ViewerTemplateContext = this.createTemplateContext();
   private checkIFrameSubscription?: IFrameReloader = undefined;
   private loadVersion = 0;
-  private externalLoadTimeoutId?: number = undefined;
-  private googleFinalRetryTimeoutId?: number = undefined;
-  private googleFinalRetriedSourceKey?: string = undefined;
-  private currentGoogleSourceKey?: string = undefined;
-  private officeRetryTimeoutId?: number = undefined;
-  private officeAutoRetriedSourceKey?: string = undefined;
-  private currentOfficeSourceKey?: string = undefined;
+  private recovery?: ViewerRecoveryController = undefined;
   private lastEmittedPhase?: ViewerRenderPhase = undefined;
 
   constructor(
@@ -288,9 +283,7 @@ export class NgxDocViewerComponent
   ) {}
 
   ngOnDestroy(): void {
-    this.clearExternalLoadTimeout();
-    this.clearGoogleFinalRetry();
-    this.clearOfficeRetry();
+    this.recovery?.dispose();
     if (this.checkIFrameSubscription) {
       this.checkIFrameSubscription.unsubscribe();
     }
@@ -341,7 +334,8 @@ export class NgxDocViewerComponent
         this.viewerUrl,
       );
       const loadVersion = ++this.loadVersion;
-      this.clearExternalLoadTimeout();
+      const recovery = this.ensureRecovery();
+      recovery.clearTimers();
       this.externalViewer = viewerDetails.externalViewer;
       if (
         viewerDetails.externalViewer &&
@@ -356,23 +350,10 @@ export class NgxDocViewerComponent
           this.viewerUrl,
         );
       }
-      const officeSourceKey =
-        this.configuredViewer === 'office' ? viewerDetails.url : undefined;
-      if (officeSourceKey !== this.currentOfficeSourceKey) {
-        this.officeAutoRetriedSourceKey = undefined;
-      }
-      this.currentOfficeSourceKey = officeSourceKey;
-      const googleSourceKey =
-        this.configuredViewer === 'google' ? viewerDetails.url : undefined;
-      if (googleSourceKey !== this.currentGoogleSourceKey) {
-        this.googleFinalRetriedSourceKey = undefined;
-      }
-      this.currentGoogleSourceKey = googleSourceKey;
+      recovery.trackSource(viewerDetails.url);
       this.docHtml = '';
       this.errorText = '';
       this.failedUrl = this.url;
-      this.clearGoogleFinalRetry();
-      this.clearOfficeRetry();
       this.updateTemplateContexts();
       if (this.checkIFrameSubscription) {
         this.checkIFrameSubscription.unsubscribe();
@@ -398,9 +379,13 @@ export class NgxDocViewerComponent
         this.fullUrl = iframeUrl;
         this.showIframe = true;
         this.updateTemplateContexts();
-        this.scheduleExternalLoadTimeout(loadVersion);
+        const plan = recovery.beginExternalLoad(
+          () => loadVersion === this.loadVersion,
+        );
         this.cdr.detectChanges();
-        this.scheduleViewerRecovery();
+        if (plan.modes.includes('google-probe')) {
+          this.scheduleGoogleProbe();
+        }
       } else if (this.configuredViewer === 'mammoth') {
         this.setRenderPhase('loading');
         this.externalViewer = false;
@@ -436,9 +421,8 @@ export class NgxDocViewerComponent
   retryLoad() {
     this.retryNonce += 1;
     const retryVersion = ++this.loadVersion;
-    this.clearExternalLoadTimeout();
-    this.clearGoogleFinalRetry();
-    this.clearOfficeRetry();
+    const recovery = this.ensureRecovery();
+    recovery.clearTimers();
     this.errorText = '';
     this.setRenderPhase(this.url ? 'loading' : 'idle');
     this.updateTemplateContexts();
@@ -481,8 +465,12 @@ export class NgxDocViewerComponent
       this.fullUrl =
         this.domSanitizer.bypassSecurityTrustResourceUrl(finalUrl);
       this.showIframe = true;
-      this.scheduleExternalLoadTimeout(retryVersion);
-      this.scheduleViewerRecovery();
+      const plan = recovery.beginExternalLoad(
+        () => retryVersion === this.loadVersion,
+      );
+      if (plan.modes.includes('google-probe')) {
+        this.scheduleGoogleProbe();
+      }
       this.updateTemplateContexts();
       this.cdr.detectChanges();
     }
@@ -497,33 +485,39 @@ export class NgxDocViewerComponent
     );
   }
 
-  private scheduleViewerRecovery() {
-    const recoveryPlan = getViewerRecoveryPlan({
-      viewer: this.configuredViewer,
-      googleCheckContentLoaded: this.googleCheckContentLoaded,
-      googleFinalRetryDelay: this.googleFinalRetryDelay,
-      officeAutoRetry: this.officeAutoRetry,
-    });
-    for (const mode of recoveryPlan.modes) {
-      if (mode === 'google-probe') {
-        this.scheduleGoogleRecovery();
-      }
-      if (mode === 'google-final-retry') {
-        continue;
-      }
-      if (mode === 'office-auto-retry') {
-        this.scheduleOfficeRetry();
-      }
+  private ensureRecovery(): ViewerRecoveryController {
+    if (!this.recovery) {
+      this.recovery = new ViewerRecoveryController(this.buildRecoveryConfig(), {
+        triggerRetry: () => this.ngZone.run(() => this.retryLoad()),
+        reportTimeout: () =>
+          this.ngZone.run(() => {
+            if (this.renderPhase !== 'loading') {
+              return;
+            }
+            this.errorText = `The ${this.configuredViewer} viewer did not finish loading in time.`;
+            this.setRenderPhase('error');
+            this.updateTemplateContexts();
+            this.cdr.detectChanges();
+          }),
+      });
     }
+    this.recovery.configure(this.buildRecoveryConfig());
+    return this.recovery;
   }
 
-  private scheduleGoogleRecovery() {
-    if (
-      this.configuredViewer !== 'google' ||
-      !this.googleCheckContentLoaded
-    ) {
-      return;
-    }
+  private buildRecoveryConfig(): ViewerRecoveryConfig {
+    return {
+      viewer: this.configuredViewer,
+      googleCheckContentLoaded: this.googleCheckContentLoaded,
+      googleCheckInterval: this.googleCheckInterval,
+      googleMaxChecks: this.googleMaxChecks,
+      googleFinalRetryDelay: this.googleFinalRetryDelay,
+      officeAutoRetry: this.officeAutoRetry,
+      officeRetryDelay: this.officeRetryDelay,
+    };
+  }
+
+  private scheduleGoogleProbe() {
     // see:
     // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
     // hack to reload iframe if it's not loaded.
@@ -540,9 +534,7 @@ export class NgxDocViewerComponent
   iframeLoaded() {
     const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
     if (iframe && iframeIsLoaded(iframe)) {
-      this.clearExternalLoadTimeout();
-      this.clearGoogleFinalRetry();
-      this.clearOfficeRetry();
+      this.recovery?.notifyLoaded();
       this.setRenderPhase('ready');
       this.updateTemplateContexts();
       this.loaded.emit(undefined);
@@ -553,9 +545,7 @@ export class NgxDocViewerComponent
   }
 
   objectLoaded() {
-    this.clearExternalLoadTimeout();
-    this.clearGoogleFinalRetry();
-    this.clearOfficeRetry();
+    this.recovery?.notifyLoaded();
     this.setRenderPhase('ready');
     this.updateTemplateContexts();
   }
@@ -587,99 +577,6 @@ export class NgxDocViewerComponent
         this.cdr.detectChanges();
       });
     }
-  }
-
-  private scheduleExternalLoadTimeout(loadVersion: number) {
-    this.clearExternalLoadTimeout();
-    const timeoutMs =
-      this.configuredViewer === 'google'
-        ? Math.max(this.googleCheckInterval * this.googleMaxChecks + 2000, 15000)
-        : 15000;
-    this.externalLoadTimeoutId = window.setTimeout(() => {
-      if (loadVersion !== this.loadVersion || this.renderPhase !== 'loading') {
-        return;
-      }
-      if (this.scheduleGoogleFinalRetry()) {
-        return;
-      }
-      this.ngZone.run(() => {
-        this.errorText = `The ${this.configuredViewer} viewer did not finish loading in time.`;
-        this.setRenderPhase('error');
-        this.updateTemplateContexts();
-        this.cdr.detectChanges();
-      });
-    }, timeoutMs);
-  }
-
-  private clearExternalLoadTimeout() {
-    if (this.externalLoadTimeoutId) {
-      window.clearTimeout(this.externalLoadTimeoutId);
-      this.externalLoadTimeoutId = undefined;
-    }
-  }
-
-  private clearGoogleFinalRetry() {
-    if (this.googleFinalRetryTimeoutId) {
-      window.clearTimeout(this.googleFinalRetryTimeoutId);
-      this.googleFinalRetryTimeoutId = undefined;
-    }
-  }
-
-  private clearOfficeRetry() {
-    if (this.officeRetryTimeoutId) {
-      window.clearTimeout(this.officeRetryTimeoutId);
-      this.officeRetryTimeoutId = undefined;
-    }
-  }
-
-  private scheduleOfficeRetry() {
-    if (
-      this.configuredViewer !== 'office' ||
-      !this.officeAutoRetry ||
-      !this.currentOfficeSourceKey ||
-      this.officeAutoRetriedSourceKey === this.currentOfficeSourceKey
-    ) {
-      return;
-    }
-    this.clearOfficeRetry();
-    this.officeRetryTimeoutId = window.setTimeout(() => {
-      if (
-        !this.currentOfficeSourceKey ||
-        this.officeAutoRetriedSourceKey === this.currentOfficeSourceKey
-      ) {
-        return;
-      }
-      this.officeAutoRetriedSourceKey = this.currentOfficeSourceKey;
-      this.ngZone.run(() => this.retryLoad());
-    }, this.officeRetryDelay);
-  }
-
-  private scheduleGoogleFinalRetry() {
-    const recoveryPlan = getViewerRecoveryPlan({
-      viewer: this.configuredViewer,
-      googleCheckContentLoaded: this.googleCheckContentLoaded,
-      googleFinalRetryDelay: this.googleFinalRetryDelay,
-      officeAutoRetry: this.officeAutoRetry,
-    });
-    if (
-      !recoveryPlan.modes.includes('google-final-retry') ||
-      !this.currentGoogleSourceKey ||
-      this.googleFinalRetriedSourceKey === this.currentGoogleSourceKey
-    ) {
-      return false;
-    }
-    this.clearGoogleFinalRetry();
-    this.googleFinalRetryTimeoutId = window.setTimeout(() => {
-      if (
-        !this.currentGoogleSourceKey ||
-        this.googleFinalRetriedSourceKey === this.currentGoogleSourceKey
-      ) {
-        return;
-      }
-      this.googleFinalRetriedSourceKey = this.currentGoogleSourceKey;
-      this.ngZone.run(() => this.retryLoad());
-    }, this.googleFinalRetryDelay);
-    return true;
   }
 
   get displayedErrorText() {

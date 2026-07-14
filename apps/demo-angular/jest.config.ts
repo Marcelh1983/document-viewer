@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 export default {
   displayName: 'demo-angular',
   preset: '../../jest.preset.js',

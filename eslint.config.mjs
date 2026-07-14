@@ -2,7 +2,16 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.d.ts', '**/*.html'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '.angular/**',
+      '.firebase/**',
+      '.opencode/**',
+      'coverage/**',
+      '**/*.d.ts',
+      '**/*.html',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', '**/*.mjs'],

@@ -31,7 +31,7 @@ export interface IFrameReloader {
 }
 
 export const defaultProps: Props = {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+   
   loaded: () => {},
   disableContent: 'none',
   googleCheckContentLoaded: true,

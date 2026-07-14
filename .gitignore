@@ -43,3 +43,4 @@ Thumbs.db
 firebase-debug.log
 .firebase/*.cache
 *dist/
+.opencode
