@@ -31,6 +31,8 @@
 /coverage
 /libpeerconnection.log
 npm-debug.log
+pnpm-debug.log*
+*.tsbuildinfo
 yarn-error.log
 testem.log
 /typings
@@ -44,3 +46,4 @@ firebase-debug.log
 .firebase/*.cache
 *dist/
 .opencode
+.playwright-mcp/
