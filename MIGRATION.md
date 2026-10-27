@@ -78,7 +78,7 @@ pnpm add react-documents@^3.0.0
 
 These changes also apply to ngx-doc-viewer v22 and react-documents v3, which re-export docviewhelper.
 
-### `handleFileUpload` returns an object url
+### `handleFileUpload` returns an object url (0.2.1)
 
 It used to read the file into a base64 data url. It now returns an object url (`blob:...`), which loads large files much faster. Object urls only live as long as the page, so don't store them, and release them when the document is no longer shown:
 
@@ -90,7 +90,7 @@ URL.revokeObjectURL(url);
 
 It now accepts the DOM change `Event` (or React's `ChangeEvent`) instead of `any`.
 
-### Removed `defaultProps`
+### Removed `defaultProps` (0.2.1)
 
 The unused `defaultProps` export has been removed. ngx-doc-viewer and react-documents define their own defaults.
 
