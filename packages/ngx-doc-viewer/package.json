@@ -26,9 +26,9 @@
     "lint": "eslint src"
   },
   "peerDependencies": {
-    "@angular/core": ">= 15.0.0",
-    "@angular/platform-browser": ">= 15.0.0",
-    "@angular/common": ">= 15.0.0"
+    "@angular/core": ">= 17.3.0",
+    "@angular/platform-browser": ">= 17.3.0",
+    "@angular/common": ">= 17.3.0"
   },
   "main": "./fesm2022/ngx-doc-viewer.mjs",
   "module": "./fesm2022/ngx-doc-viewer.mjs",

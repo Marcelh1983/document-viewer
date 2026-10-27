@@ -1,3 +1,21 @@
+# 3.0.0 (10/27/2026)
+Breaking changes:
+* the iframe no longer has `id="iframe"`; use the `react-documents-iframe` class instead
+* `loaded` is called for every viewer (iframe, pdf and mammoth), once per load
+* the `viewerType` type is deprecated in favor of `ViewerType`
+
+Changes:
+* added the `disableContent` prop (`none`, `all`, `popout`, `popout-hide`), matching ngx-doc-viewer
+* the props are exported as the `DocumentViewerProps` type
+* the google reload probe now starts after the new iframe has mounted and stops when the component unmounts
+* changing any prop that affects loading now always remounts the iframe, so it can no longer get stuck in the loading state
+* the mammoth timeout now uses the shared recovery logic (message: "The mammoth viewer did not finish loading in time.")
+* fixed the mammoth viewer showing an error instead of staying idle when `url` is empty
+* fixed relative document urls not being encoded when passed to the google or office viewer
+* a missing mammoth script now shows a clear error message instead of `mammoth is not defined`
+* the google reload check now stops as soon as the document has loaded
+* `overrideLocalhost` now recognizes all private network addresses (`10.x`, `172.16-31.x`, `192.168.x`, `127.x`)
+
 # 2.0.0 (03/17/2026)
 * added a built-in loading overlay while external viewers and inline renderers initialize
 * added customizable loading content support through the `loadingRenderer` prop

@@ -1,7 +1,13 @@
 declare const mammoth: {
   convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
 };
-import { IFrameReloader, ViewerRecoveryPlan, ViewerType } from './model';
+import {
+  DisableContent,
+  DisableContentOverlay,
+  IFrameReloader,
+  ViewerRecoveryPlan,
+  ViewerType,
+} from './model';
 
 export const fileToArray = (url: string): Promise<ArrayBuffer> => {
   return new Promise<ArrayBuffer>((resolve, reject) => {
@@ -83,8 +89,8 @@ export const getLocation = (href: string) => {
 };
 
 export const getDocxToHtml = async (url: string) => {
-  if (!mammoth) {
-    console.error(
+  if (typeof mammoth === 'undefined') {
+    throw new Error(
       'Please install mammoth and make sure mammoth.browser.min.js is loaded.',
     );
   }
@@ -100,6 +106,10 @@ export const googleCheckSubscription = (): IFrameReloader => {
     subscribe: (iframe: HTMLIFrameElement, interval = 3000, maxChecks = 5) => {
       if (!iframeIsLoaded(iframe)) {
         subscription = setInterval(() => {
+          if (iframeIsLoaded(iframe)) {
+            clearInterval(subscription);
+            return;
+          }
           checkCount++;
           if (checkCount >= maxChecks) {
             clearInterval(subscription);
@@ -155,8 +165,9 @@ export const getViewerDetails = (
     configuredViewer === 'office' ||
     configuredViewer === 'url';
 
-  const u = url?.indexOf('/') ? encodeURIComponent(url) : url;
-  let fullUrl = viewerUrl ? viewerUrl.replace('%URL%', u) : url;
+  let fullUrl = viewerUrl
+    ? viewerUrl.replace('%URL%', encodeURIComponent(url ?? ''))
+    : url;
   if (queryParams && externalViewer && configuredViewer !== 'url') {
     const start = queryParams.startsWith('&') ? '' : '&';
     fullUrl = `${fullUrl}${start}${queryParams}`;
@@ -165,6 +176,54 @@ export const getViewerDetails = (
     url: fullUrl,
     externalViewer,
   };
+};
+
+/**
+ * getViewerDetails plus the overrideLocalhost rewrite: external viewers cannot
+ * reach local files, so those urls are rewritten to the public host first.
+ */
+export const resolveViewerDetails = ({
+  url,
+  viewer = 'google',
+  queryParams = '',
+  viewerUrl = '',
+  overrideLocalhost = '',
+}: {
+  url: string;
+  viewer?: ViewerType;
+  queryParams?: string;
+  viewerUrl?: string;
+  overrideLocalhost?: string;
+}) => {
+  const details = getViewerDetails(url, viewer, queryParams, viewerUrl);
+  if (details.externalViewer && overrideLocalhost && isLocalFile(url)) {
+    return getViewerDetails(
+      replaceLocalUrl(url, overrideLocalhost),
+      viewer,
+      queryParams,
+      viewerUrl,
+    );
+  }
+  return details;
+};
+
+/** Which part of the external viewer the disableContent overlay covers. */
+export const getDisableContentOverlay = (
+  viewer: ViewerType,
+  disableContent: DisableContent,
+): DisableContentOverlay | undefined => {
+  if (disableContent === 'all') {
+    return 'full';
+  }
+  if (disableContent === 'popout' || disableContent === 'popout-hide') {
+    if (viewer === 'google') {
+      return 'popout-google';
+    }
+    if (viewer === 'office') {
+      return 'popout-office';
+    }
+  }
+  return undefined;
 };
 
 export const getViewerRecoveryPlan = ({
@@ -215,7 +274,11 @@ const getBlobFromUrl = (url: string) => {
     request.open('GET', url, true);
     request.responseType = 'blob';
     request.onload = () => {
-      resolve(request.response as File);
+      if (request.status >= 200 && request.status < 300) {
+        resolve(request.response as File);
+      } else {
+        reject(`error while retrieving file ${url} (status ${request.status}).`);
+      }
     };
     request.onerror = reject;
     request.send();
@@ -223,38 +286,52 @@ const getBlobFromUrl = (url: string) => {
 };
 
 export const uploadToCloud = (fileUrl: string, api: string) =>
-  new Promise((resolve, reject) => {
-    getBlobFromUrl(fileUrl).then((blob) => {
-      const loc = getLocation(fileUrl);
-      const name = loc?.pathname
-        ? loc?.pathname?.split('/')[loc?.pathname?.split('/').length - 1]
-        : '';
-      const formData = new FormData();
-      const request = new XMLHttpRequest();
-      formData.append('file', blob, name);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      request.onreadystatechange = (e) => {
-        if (request.readyState === XMLHttpRequest.DONE) {
-          if (request.status === 200) {
-            resolve(request.responseText);
-          } else {
-            reject(request.responseText);
+  getBlobFromUrl(fileUrl).then(
+    (blob) =>
+      new Promise((resolve, reject) => {
+        const loc = getLocation(fileUrl);
+        const name = loc?.pathname
+          ? loc?.pathname?.split('/')[loc?.pathname?.split('/').length - 1]
+          : '';
+        const formData = new FormData();
+        const request = new XMLHttpRequest();
+        formData.append('file', blob, name);
+        request.onreadystatechange = () => {
+          if (request.readyState === XMLHttpRequest.DONE) {
+            if (request.status === 200) {
+              resolve(request.responseText);
+            } else {
+              reject(request.responseText);
+            }
           }
-        }
-      };
-      request.onerror = reject;
-      request.open('post', api, true);
-      request.send(formData);
-    });
-  });
+        };
+        request.onerror = reject;
+        request.open('post', api, true);
+        request.send(formData);
+      }),
+  );
+
+// Loopback and RFC 1918 ranges, which external viewers cannot reach.
+const isPrivateIPv4 = (hostname: string) => {
+  const match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+  if (!match) {
+    return false;
+  }
+  const [a, b] = [Number(match[1]), Number(match[2])];
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+};
 
 export const isLocalFile = (file: string) => {
   const loc = getLocation(file);
   const hostname = loc?.hostname || '';
   return (
-    ['localhost', '127.0.0.1', '', '::1'].includes(hostname) ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('10.0.') ||
+    ['localhost', '', '::1'].includes(hostname) ||
+    isPrivateIPv4(hostname) ||
     hostname.endsWith('.local')
   );
 };

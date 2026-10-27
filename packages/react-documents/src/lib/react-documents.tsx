@@ -1,21 +1,31 @@
-import React, { CSSProperties, ReactNode, useEffect, useRef, useState } from 'react';
 import {
+  CSSProperties,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  DisableContent,
+  DisableContentOverlay,
   IFrameReloader,
   ViewerRecoveryConfig,
   ViewerRecoveryController,
-  googleCheckSubscription,
-  getViewerDetails,
+  ViewerRenderPhase,
+  ViewerType,
+  getDisableContentOverlay,
   getDocxToHtml,
+  googleCheckSubscription,
   iframeIsLoaded,
-  isLocalFile,
-  replaceLocalUrl
+  resolveViewerDetails,
 } from 'docviewhelper';
 
-export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
-type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
+/** @deprecated Use `ViewerType` instead. */
+export type viewerType = ViewerType;
 type ViewerContentKind = 'empty' | 'external' | 'inline' | 'pdf';
 interface ViewerRendererContext {
-  viewer: viewerType;
+  viewer: ViewerType;
   url: string;
   phase: ViewerRenderPhase;
   errorText: string;
@@ -48,7 +58,16 @@ const inlineDocumentPageStyle: CSSProperties = {
   lineHeight: 1.7,
 };
 
-interface Props {
+const disableContentOverlayStyles: Record<
+  DisableContentOverlay,
+  CSSProperties
+> = {
+  full: { width: '100%', height: '100%', right: 0, top: 0 },
+  'popout-google': { width: '40px', height: '40px', right: '26px', top: '11.5px' },
+  'popout-office': { width: '100px', height: '20px', right: 0, bottom: 0 },
+};
+
+interface ResolvedProps {
   loaded?: () => void;
   onLoading?: (event: DocumentViewerEvent) => void;
   onError?: (event: DocumentViewerEvent) => void;
@@ -60,8 +79,9 @@ interface Props {
   googleMaxChecks: number;
   googleFinalRetryDelay: number;
   googleCheckContentLoaded: boolean;
-  viewer: viewerType;
+  viewer: ViewerType;
   overrideLocalhost: string;
+  disableContent: DisableContent;
   officeAutoRetry: boolean;
   officeRetryDelay: number;
   loadingRenderer?: ReactNode | ((context: ViewerRendererContext) => ReactNode);
@@ -76,8 +96,9 @@ interface Props {
   className?: string | undefined;
 }
 
-const defaultProps: Props = {
-   
+export type DocumentViewerProps = Partial<ResolvedProps>;
+
+const defaultProps: ResolvedProps = {
   loaded: () => {},
   onLoading: () => {},
   onError: () => {},
@@ -88,6 +109,7 @@ const defaultProps: Props = {
   queryParams: '',
   url: '',
   overrideLocalhost: '',
+  disableContent: 'none',
   officeAutoRetry: false,
   officeRetryDelay: 3000,
   googleMaxChecks: 5,
@@ -115,335 +137,257 @@ interface State {
   docHtml: { __html: string };
   iframeKey: string;
   errorMessage: string;
-  failedUrl: string;
+  sourceUrl: string;
   retryNonce: number;
 }
 
-const buildRecoveryConfig = (p: Props): ViewerRecoveryConfig => ({
-  viewer: p.viewer,
-  googleCheckContentLoaded: p.googleCheckContentLoaded,
-  googleCheckInterval: p.googleCheckInterval,
-  googleMaxChecks: p.googleMaxChecks,
-  googleFinalRetryDelay: p.googleFinalRetryDelay,
-  officeAutoRetry: p.officeAutoRetry,
-  officeRetryDelay: p.officeRetryDelay,
-});
+const toErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Unable to load document.';
 
-export const DocumentViewer = (inputProps: Partial<Props>) => {
-  const iframeRef = useRef(null);
-  const [state, setState] = useState({
+export const DocumentViewer = (inputProps: DocumentViewerProps) => {
+  const props: ResolvedProps = { ...defaultProps, ...inputProps };
+  // Callbacks and timers read the latest props without re-running effects.
+  const latestProps = useRef(props);
+  latestProps.current = props;
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [state, setState] = useState<State>({
     phase: 'idle',
     contentKind: 'empty',
     url: '',
     docHtml: { __html: '' },
     iframeKey: '',
     errorMessage: '',
-    failedUrl: '',
+    sourceUrl: '',
     retryNonce: 0,
-  } as State);
+  });
   const checkIFrameSubscription = useRef<IFrameReloader | undefined>(undefined);
-  const props = useRef<Props>({ ...defaultProps, ...inputProps });
-  // Keep the latest merged props available to render + callbacks without forcing
-  // the load effect below to re-run on every parent render.
-  props.current = { ...defaultProps, ...inputProps };
-  const mammothTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined
-  );
   const recovery = useRef<ViewerRecoveryController | undefined>(undefined);
   const lastEmittedPhase = useRef<ViewerRenderPhase | undefined>(undefined);
+  const loadCount = useRef(0);
+  // The iframe key that still needs the google reload probe once it is mounted.
+  const googleProbeKey = useRef<string | undefined>(undefined);
 
-  const setNewUrl = async (details: {
-    url: string;
-    externalViewer: boolean;
-  }) => {
-    if (props.current) {
-      const iframe = iframeRef.current as unknown as HTMLIFrameElement;
-      if (checkIFrameSubscription && checkIFrameSubscription.current) {
-        checkIFrameSubscription.current.unsubscribe();
-      }
-      if (
-        (props.current.viewer === 'google' ||
-          props.current.viewer === 'office') &&
-        props.current.googleCheckContentLoaded === true
-      ) {
-        reloadIframe(
-          iframe,
-          details.url,
-          props.current.googleCheckInterval,
-          props.current.googleMaxChecks
-        );
-      }
-    }
-  };
-
-  const scheduleGoogleProbe = (details: {
-    url: string;
-    externalViewer: boolean;
-  }) => {
-    window.setTimeout(() => {
-      if (!props.current) {
-        return;
-      }
-      setNewUrl(details);
-    }, 0);
-  };
+  const {
+    url,
+    viewer,
+    queryParams,
+    viewerUrl,
+    overrideLocalhost,
+    googleCheckContentLoaded,
+    googleCheckInterval,
+    googleMaxChecks,
+    googleFinalRetryDelay,
+    officeAutoRetry,
+    officeRetryDelay,
+  } = props;
+  const { retryNonce } = state;
 
   useEffect(() => {
+    const config: ViewerRecoveryConfig = {
+      viewer,
+      googleCheckContentLoaded,
+      googleCheckInterval,
+      googleMaxChecks,
+      googleFinalRetryDelay,
+      officeAutoRetry,
+      officeRetryDelay,
+    };
     if (!recovery.current) {
-      recovery.current = new ViewerRecoveryController(
-        buildRecoveryConfig(props.current),
-        {
-          triggerRetry: () =>
-            setState((current) => ({
-              ...current,
-              phase: 'loading',
-              errorMessage: '',
-              retryNonce: current.retryNonce + 1,
-            })),
-          reportTimeout: () =>
-            setState((current) =>
-              current.phase !== 'loading'
-                ? current
-                : {
-                    ...current,
-                    phase: 'error',
-                    errorMessage: `The ${props.current?.viewer} viewer did not finish loading in time.`,
-                  }
-            ),
-        }
-      );
-    }
-    recovery.current.configure(buildRecoveryConfig(props.current));
-
-    let isActive = true;
-    let details = getViewerDetails(
-      props.current.url,
-      props.current.viewer,
-      props.current.queryParams,
-      props.current.viewerUrl
-    );
-    if (
-      details.externalViewer &&
-      props.current.overrideLocalhost &&
-      isLocalFile(props.current.url)
-    ) {
-      const newUrl = replaceLocalUrl(
-        props.current.url,
-        props.current.overrideLocalhost
-      );
-      details = getViewerDetails(
-        newUrl,
-        props.current.viewer,
-        props.current.queryParams,
-        props.current.viewerUrl
-      );
-    }
-    recovery.current.trackSource(details.url);
-
-    setState({
-      phase: props.current.url ? 'loading' : 'idle',
-      contentKind: props.current.url
-        ? details.externalViewer
-          ? 'external'
-          : props.current.viewer === 'pdf'
-            ? 'pdf'
-            : props.current.viewer === 'mammoth'
-              ? 'inline'
-              : 'empty'
-        : 'empty',
-      url: details.url,
-      docHtml: { __html: '' },
-      iframeKey: `${props.current.viewer}:${details.url}:${state.retryNonce}`,
-      errorMessage: '',
-      failedUrl: props.current.url,
-      retryNonce: state.retryNonce,
-    });
-    if (props.current.viewer === 'mammoth') {
-      if (mammothTimeout.current) {
-        clearTimeout(mammothTimeout.current);
-        mammothTimeout.current = undefined;
-      }
-      if (props.current.url) {
-        mammothTimeout.current = setTimeout(() => {
-          if (!isActive) {
-            return;
-          }
+      recovery.current = new ViewerRecoveryController(config, {
+        triggerRetry: () =>
+          setState((current) => ({
+            ...current,
+            phase: 'loading',
+            errorMessage: '',
+            retryNonce: current.retryNonce + 1,
+          })),
+        reportTimeout: () =>
           setState((current) =>
             current.phase !== 'loading'
               ? current
               : {
                   ...current,
                   phase: 'error',
-                  contentKind: 'inline',
-                  errorMessage: 'The document did not finish loading in time.',
+                  errorMessage: `The ${latestProps.current.viewer} viewer did not finish loading in time.`,
                 }
-          );
-        }, 15000);
-      }
-      const setHtml = async () => {
-        try {
-          const docHtml = { __html: await getDocxToHtml(details.url) };
-          if (!isActive) {
-            return;
-          }
-          if (mammothTimeout.current) {
-            clearTimeout(mammothTimeout.current);
-            mammothTimeout.current = undefined;
-          }
-          setState({
-            phase: 'ready',
-            contentKind: 'inline',
-            url: '',
-            docHtml,
-            iframeKey: '',
-            errorMessage: '',
-            failedUrl: props.current?.url ?? '',
-            retryNonce: state.retryNonce,
-          });
-        } catch (error) {
-          if (!isActive) {
-            return;
-          }
-          if (mammothTimeout.current) {
-            clearTimeout(mammothTimeout.current);
-            mammothTimeout.current = undefined;
-          }
-          setState({
-            phase: 'error',
-            contentKind: 'inline',
-            url: '',
-            docHtml: { __html: '' },
-            iframeKey: '',
-            errorMessage:
-              error instanceof Error ? error.message : 'Unable to load document.',
-            failedUrl: props.current?.url ?? '',
-            retryNonce: state.retryNonce,
-          });
-        }
-      };
-      setHtml();
-      return () => {
-        isActive = false;
-        if (mammothTimeout.current) {
-          clearTimeout(mammothTimeout.current);
-          mammothTimeout.current = undefined;
-        }
-        recovery.current?.clearTimers();
-        if (checkIFrameSubscription && checkIFrameSubscription.current) {
-          checkIFrameSubscription.current.unsubscribe();
-        }
-      };
+          ),
+      });
     }
+    const controller = recovery.current;
+    controller.configure(config);
 
-    if (props.current.url) {
-      const plan = recovery.current.beginExternalLoad(() => isActive);
+    let isActive = true;
+    const details = resolveViewerDetails({
+      url,
+      viewer,
+      queryParams,
+      viewerUrl,
+      overrideLocalhost,
+    });
+    controller.trackSource(details.url);
+    // Every load gets its own key so the iframe/object remounts and fires load again.
+    const iframeKey = `${viewer}:${details.url}:${++loadCount.current}`;
+    googleProbeKey.current = undefined;
+
+    setState({
+      phase: url ? 'loading' : 'idle',
+      contentKind: !url
+        ? 'empty'
+        : details.externalViewer
+          ? 'external'
+          : viewer === 'pdf'
+            ? 'pdf'
+            : viewer === 'mammoth'
+              ? 'inline'
+              : 'empty',
+      url: details.url,
+      docHtml: { __html: '' },
+      iframeKey,
+      errorMessage: '',
+      sourceUrl: url,
+      retryNonce,
+    });
+
+    if (url && viewer === 'mammoth') {
+      controller.beginInlineLoad(() => isActive);
+      getDocxToHtml(details.url).then(
+        (html) => {
+          if (!isActive) {
+            return;
+          }
+          controller.notifyLoaded();
+          setState((current) => ({
+            ...current,
+            phase: 'ready',
+            docHtml: { __html: html },
+          }));
+        },
+        (error) => {
+          if (!isActive) {
+            return;
+          }
+          controller.clearTimers();
+          setState((current) => ({
+            ...current,
+            phase: 'error',
+            errorMessage: toErrorMessage(error),
+          }));
+        }
+      );
+    } else if (url) {
+      const plan = controller.beginExternalLoad(() => isActive);
       if (plan.modes.includes('google-probe')) {
-        scheduleGoogleProbe(details);
+        googleProbeKey.current = iframeKey;
       }
     }
 
     return () => {
       isActive = false;
-      recovery.current?.clearTimers();
-      if (checkIFrameSubscription && checkIFrameSubscription.current) {
-        checkIFrameSubscription.current.unsubscribe();
-      }
+      controller.clearTimers();
     };
   }, [
-    inputProps.url,
-    inputProps.viewer,
-    inputProps.queryParams,
-    inputProps.viewerUrl,
-    inputProps.overrideLocalhost,
-    inputProps.googleCheckContentLoaded,
-    inputProps.googleCheckInterval,
-    inputProps.googleMaxChecks,
-    inputProps.googleFinalRetryDelay,
-    inputProps.officeAutoRetry,
-    inputProps.officeRetryDelay,
-    state.retryNonce,
+    url,
+    viewer,
+    queryParams,
+    viewerUrl,
+    overrideLocalhost,
+    googleCheckContentLoaded,
+    googleCheckInterval,
+    googleMaxChecks,
+    googleFinalRetryDelay,
+    officeAutoRetry,
+    officeRetryDelay,
+    retryNonce,
   ]);
 
-  const reloadIframe = (
-    iframe: HTMLIFrameElement,
-    url: string,
-    interval: number,
-    maxChecks: number
-  ) => {
-    checkIFrameSubscription.current = googleCheckSubscription();
-    checkIFrameSubscription.current.subscribe(iframe, interval, maxChecks);
-  };
+  // Google sometimes answers with an empty 204 page; reload the iframe until the
+  // viewer shows up. Runs after the iframe for the current key has mounted.
+  // see: https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || googleProbeKey.current !== state.iframeKey) {
+      return;
+    }
+    const subscription = googleCheckSubscription();
+    checkIFrameSubscription.current = subscription;
+    subscription.subscribe(
+      iframe,
+      latestProps.current.googleCheckInterval,
+      latestProps.current.googleMaxChecks
+    );
+    return () => subscription.unsubscribe();
+  }, [state.iframeKey]);
 
   const iframeLoaded = () => {
-    if (
-      props.current &&
-      iframeRef &&
-      iframeRef.current !== null &&
-      iframeIsLoaded(iframeRef.current as unknown as HTMLIFrameElement)
-    ) {
+    const iframe = iframeRef.current;
+    if (iframe && iframeIsLoaded(iframe)) {
       recovery.current?.notifyLoaded();
+      checkIFrameSubscription.current?.unsubscribe();
       setState((current) => ({ ...current, phase: 'ready' }));
-      if (props.current.loaded) props.current.loaded();
-      if (checkIFrameSubscription.current) {
-        checkIFrameSubscription.current.unsubscribe();
-      }
     }
   };
 
-  const retryLoad = () => {
+  const retryLoad = useCallback(() => {
     recovery.current?.clearTimers();
     setState((current) => ({
       ...current,
-      phase: props.current?.url ? 'loading' : 'idle',
+      phase: latestProps.current.url ? 'loading' : 'idle',
       errorMessage: '',
       retryNonce: current.retryNonce + 1,
     }));
-  };
+  }, []);
 
   const rendererContext: ViewerRendererContext = {
-    viewer: props.current?.viewer ?? 'google',
-    url: state.failedUrl || props.current?.url || '',
+    viewer,
+    url: state.sourceUrl || url,
     phase: state.phase,
     errorText: state.errorMessage || 'Unable to load document.',
     retry: retryLoad,
-    actionUrl: state.failedUrl || props.current?.url || '',
+    actionUrl: state.sourceUrl || url,
   };
 
   const loadingContent =
-    typeof props.current?.loadingRenderer === 'function'
-      ? props.current.loadingRenderer(rendererContext)
-      : props.current?.loadingRenderer;
-
+    typeof props.loadingRenderer === 'function'
+      ? props.loadingRenderer(rendererContext)
+      : props.loadingRenderer;
   const errorContent =
-    typeof props.current?.errorRenderer === 'function'
-      ? props.current.errorRenderer(rendererContext)
-      : props.current?.errorRenderer;
+    typeof props.errorRenderer === 'function'
+      ? props.errorRenderer(rendererContext)
+      : props.errorRenderer;
   const officeReloadContent =
-    typeof props.current?.officeReloadRenderer === 'function'
-      ? props.current.officeReloadRenderer(rendererContext)
-      : props.current?.officeReloadRenderer;
+    typeof props.officeReloadRenderer === 'function'
+      ? props.officeReloadRenderer(rendererContext)
+      : props.officeReloadRenderer;
+  const disableContentOverlay = getDisableContentOverlay(
+    viewer,
+    props.disableContent
+  );
 
   useEffect(() => {
-    if (!props.current || lastEmittedPhase.current === state.phase) {
+    if (lastEmittedPhase.current === state.phase) {
       return;
     }
     lastEmittedPhase.current = state.phase;
+    const current = latestProps.current;
     const event: DocumentViewerEvent = {
-      viewer: props.current.viewer,
-      url: state.failedUrl || props.current.url,
+      viewer: current.viewer,
+      url: state.sourceUrl || current.url,
       phase: state.phase,
       errorText: state.errorMessage || 'Unable to load document.',
       retry: retryLoad,
-      actionUrl: state.failedUrl || props.current.url,
+      actionUrl: state.sourceUrl || current.url,
     };
-    props.current.onPhaseChange?.(event);
+    current.onPhaseChange?.(event);
     if (state.phase === 'loading') {
-      props.current.onLoading?.(event);
+      current.onLoading?.(event);
     }
     if (state.phase === 'error') {
-      props.current.onError?.(event);
+      current.onError?.(event);
     }
-  }, [state.errorMessage, state.failedUrl, state.phase]);
+    if (state.phase === 'ready') {
+      current.loaded?.();
+    }
+  }, [state.errorMessage, state.sourceUrl, state.phase, retryLoad]);
 
   return (
     <div
@@ -451,16 +395,16 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         position: 'relative',
         width: '100%',
         height: '100%',
-        ...props.current?.style,
+        ...props.style,
       }}
-      className={props.current?.className}
+      className={props.className}
     >
       {state.phase === 'loading' ? (
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            zIndex: 1,
+            zIndex: 1001,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -479,7 +423,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           style={{
             position: 'absolute',
             inset: 0,
-            zIndex: 1,
+            zIndex: 1001,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -495,12 +439,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
           {errorContent ?? (
             <div>
               <div>{state.errorMessage || 'Unable to load document.'}</div>
-              {props.current?.viewer ? (
-                <div style={{ marginTop: '8px', color: '#475569' }}>
-                  Viewer: {props.current.viewer}
-                </div>
-              ) : null}
-              {state.failedUrl ? (
+              <div style={{ marginTop: '8px', color: '#475569' }}>
+                Viewer: {viewer}
+              </div>
+              {state.sourceUrl ? (
                 <div
                   style={{
                     marginTop: '4px',
@@ -509,7 +451,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
                     wordBreak: 'break-word',
                   }}
                 >
-                  {state.failedUrl}
+                  {state.sourceUrl}
                 </div>
               ) : null}
               <button
@@ -526,25 +468,21 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
                   cursor: 'pointer',
                 }}
               >
-                {props.current?.retryButtonText}
+                {props.retryButtonText}
               </button>
-              {props.current?.secondaryActionText && state.failedUrl ? (
+              {props.secondaryActionText && state.sourceUrl ? (
                 <a
-                  href={state.failedUrl}
+                  href={state.sourceUrl}
                   target={
-                    props.current.secondaryActionMode === 'open'
-                      ? '_blank'
-                      : undefined
+                    props.secondaryActionMode === 'open' ? '_blank' : undefined
                   }
                   rel={
-                    props.current.secondaryActionMode === 'open'
+                    props.secondaryActionMode === 'open'
                       ? 'noreferrer'
                       : undefined
                   }
                   download={
-                    props.current.secondaryActionMode === 'download'
-                      ? ''
-                      : undefined
+                    props.secondaryActionMode === 'download' ? '' : undefined
                   }
                   style={{
                     marginTop: '14px',
@@ -559,7 +497,7 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
                     font: 'inherit',
                   }}
                 >
-                  {props.current.secondaryActionText}
+                  {props.secondaryActionText}
                 </a>
               ) : null}
             </div>
@@ -567,10 +505,10 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         </div>
       ) : null}
 
-      {props.current?.viewer === 'office' && state.phase === 'ready' ? (
+      {viewer === 'office' && state.phase === 'ready' ? (
         <button
           type="button"
-          title={props.current?.officeReloadButtonTitle}
+          title={props.officeReloadButtonTitle}
           onClick={retryLoad}
           style={{
             position: 'absolute',
@@ -593,24 +531,38 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
             padding: 0,
           }}
         >
-          {officeReloadContent ?? props.current?.officeReloadButtonText}
+          {officeReloadContent ?? props.officeReloadButtonText}
         </button>
       ) : null}
 
       {state.contentKind === 'external' ? (
-        <iframe
-          key={state.iframeKey}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-          ref={iframeRef}
-          onLoad={() => {
-            iframeLoaded();
-          }}
-          id="iframe"
-          title="iframe"
-          frameBorder="0"
-          allow="clipboard-read; clipboard-write"
-          src={state.url}
-        ></iframe>
+        <>
+          <iframe
+            key={state.iframeKey}
+            className="react-documents-iframe"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+            ref={iframeRef}
+            onLoad={iframeLoaded}
+            title="Document viewer"
+            frameBorder="0"
+            allow="clipboard-read; clipboard-write"
+            src={state.url}
+          ></iframe>
+          {disableContentOverlay ? (
+            <div
+              className="react-documents-overlay"
+              style={{
+                position: 'absolute',
+                zIndex: 1000,
+                background:
+                  props.disableContent === 'popout-hide'
+                    ? '#fff'
+                    : 'transparent',
+                ...disableContentOverlayStyles[disableContentOverlay],
+              }}
+            ></div>
+          ) : null}
+        </>
       ) : state.contentKind === 'inline' ? (
         <div style={inlineDocumentShellStyle}>
           <div
@@ -620,6 +572,8 @@ export const DocumentViewer = (inputProps: Partial<Props>) => {
         </div>
       ) : state.contentKind === 'pdf' && state.url ? (
         <object
+          key={state.iframeKey}
+          className="react-documents-object"
           data={state.url}
           style={{ width: '100%', height: '100%', display: 'block' }}
           onLoad={() => {

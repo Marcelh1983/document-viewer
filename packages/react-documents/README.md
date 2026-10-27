@@ -37,9 +37,9 @@ import { DocumentViewer } from 'react-documents';
 
 The component now shows an internal loading overlay while external viewers such as Google Docs Viewer and Office Online are initializing, so viewer switches do not appear as a blank panel.
 
-To
-
 #### API:
+
+The props are exported as the `DocumentViewerProps` type, for typing wrapper components.
 
 Props:
 
@@ -48,6 +48,11 @@ Props:
 - viewerUrl: only for viewer: 'url'; location of the document renderer. Only use this option for other viewers then google or office.
 - queryParams, e.g. to set language. for google: hl=[lang] e.g. hl=nl
  - overrideLocalhost: documents from the assets folder are not publicly available and therefor won't show in an external viewer (google, office). If the site is already published to public server, then pass that url and if will replace localhost by the other url. Like: overrideLocalhost="https://react-documents.firebaseapp.com/"
+ - disableContent: 'none' | 'all' | 'popout' | 'popout-hide' = 'none':
+   - none: no overlay
+   - all: adds an overlay to the whole iframe, which makes nothing in the document clickable/selectable
+   - popout: adds an overlay over googles popout button or office popout and menu which disables just this button/menu but keeps giving the possibility to select text.
+   - popout-hide: like popout, but with a white overlay instead of a transparent one, so the button is hidden as well.
  - loadingRenderer: text, JSX, or a render function shown in the built-in loading overlay. Defaults to `Loading document...`
  - errorRenderer: text, JSX, or a render function shown in the built-in error overlay. By default it shows the viewer, failing URL, and a retry button.
  - retryButtonText: text used by the built-in retry button in the default error overlay. Defaults to `Retry`
@@ -97,7 +102,7 @@ There are some issues loading document in the google viewer. See: https://stacko
 - googleMaxChecks = 5 | max number of retries
 Output:
 
-- loaded: emitted when the current iframe is ready. Can be used to hook into custom loading or telemetry flows.
+- loaded: called each time the document is ready, for every viewer (iframe, pdf or mammoth). Can be used to hook into custom loading or telemetry flows.
 - onLoading: callback fired when the viewer enters the `loading` phase.
 - onError: callback fired when the viewer enters the `error` phase.
 - onPhaseChange: callback fired whenever the internal phase changes to `idle`, `loading`, `ready`, or `error`.
@@ -109,6 +114,14 @@ Lifecycle callback payload includes:
 - `errorText`
 - `retry()`
 - `actionUrl`
+
+### Styling
+
+The rendered elements have class names you can target from your own CSS:
+
+- `react-documents-iframe`: the iframe used by the google, office and url viewers
+- `react-documents-object`: the object used by the pdf viewer
+- `react-documents-overlay`: the `disableContent` overlay
 
 ### Recent behavior improvements
 

@@ -16,6 +16,15 @@ Pdf files and word document that are not publicly available can be shown using t
 npm install ngx-doc-viewer --save
 ```
 
+### Angular compatibility
+
+ngx-doc-viewer works with Angular 17.3 and newer (use ngx-doc-viewer 21 for Angular 15 to 17.2). The component does not set a change detection strategy, so it follows the default of the Angular version your app uses:
+
+- Angular 22 and newer: `OnPush`
+- Angular 21 and older: `Eager` (previously called `Default`)
+
+Projected templates (`loadingContent`, `errorContent`, `errorActions`, `officeReloadContent`) keep updating with your component's state under both strategies.
+
 ### Usage
 
 #### 1. Import `NgxDocViewerModule`
@@ -38,8 +47,6 @@ export class AppModule {}
 ```
 
 The component now shows an internal loading overlay while external viewers such as Google Docs Viewer and Office Online are initializing, so viewer switches do not appear as a blank panel.
-
-To
 
 #### API:
 
@@ -132,10 +139,18 @@ There are some issues loading document in the google viewer. See: https://stacko
 - googleMaxChecks = 5 | max number of retries
 Output:
 
-- loaded: emitted when the current iframe is ready. Can be used to hook into custom loading or telemetry flows.
+- loaded: emitted each time the document is ready, for every viewer (iframe, pdf or mammoth). Can be used to hook into custom loading or telemetry flows.
 - loading: emitted when the viewer enters the `loading` phase. Payload includes `viewer`, `url`, `phase`, `errorText`, `retry()`, and `actionUrl`.
 - error: emitted when the viewer enters the `error` phase. Payload includes `viewer`, `url`, `phase`, `errorText`, `retry()`, and `actionUrl`.
 - phaseChange: emitted whenever the internal phase changes to `idle`, `loading`, `ready`, or `error`.
+
+### Styling
+
+The rendered elements have class names you can target from your own CSS:
+
+- `ngx-doc-viewer-iframe`: the iframe used by the google, office and url viewers
+- `ngx-doc-viewer-object`: the object used by the pdf viewer
+- `overlay`: the `disableContent` overlay
 
 ### Recent behavior improvements
 

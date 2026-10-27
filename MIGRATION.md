@@ -1,5 +1,79 @@
 # Migration Guide
 
+## ngx-doc-viewer v21 → v22
+
+### Angular version requirement
+
+The minimum supported Angular version has been raised from **15** to **17.3**. The component now uses signal inputs/outputs and built-in control flow. If you are on Angular 15 to 17.2, stay on `ngx-doc-viewer@21`.
+
+### Template usage is unchanged
+
+Bindings such as `[url]="doc"`, `viewer="google"` and `(loaded)="..."`, and the projected `loadingContent`, `errorContent`, `errorActions` and `officeReloadContent` templates work as before.
+
+### Code that accesses the component directly
+
+Inputs, outputs and state are now signals. If you access the component instance (for example through `@ViewChild` or in tests):
+
+| v21 | v22 |
+|---|---|
+| `viewer.url = 'x'` | `componentRef.setInput('url', 'x')` or bind it in the template |
+| `viewer.renderPhase` | `viewer.renderPhase()` |
+| `viewer.loaded.subscribe(...)` | unchanged |
+| `viewer.retryLoad()` | unchanged |
+
+### Iframe id replaced by a class
+
+The iframe no longer has an `id` (`iframe` / `iframe-doc-viewer`), so several viewers on one page no longer produce duplicate ids. Target `.ngx-doc-viewer-iframe` instead.
+
+### `loaded` fires for every viewer
+
+`loaded` is now emitted once per load for every viewer, including pdf and mammoth. Before, it was only emitted for iframe viewers, on every iframe load event.
+
+### Change detection
+
+v22 is built with Angular 22 and does not set a change detection strategy, so the component follows your app's default:
+
+- **Angular 22+**: the component runs as `OnPush`, like your own components.
+- **Angular 17.3 – 21**: the component runs as `Eager` (previously `Default`).
+
+The component triggers its own updates for everything it does internally: loading, timeouts, retries and mammoth rendering. Projected templates keep updating with your component's state.
+
+### Update your dependency
+
+```bash
+npm install ngx-doc-viewer@^22.0.0
+# or
+pnpm add ngx-doc-viewer@^22.0.0
+```
+
+---
+
+## react-documents v2 → v3
+
+### Iframe id replaced by a class
+
+The iframe no longer has `id="iframe"`, so several viewers on one page no longer produce duplicate ids. Target `.react-documents-iframe` instead.
+
+### `loaded` fires for every viewer
+
+`loaded` is now called once per load for every viewer, including pdf and mammoth. Before, it was only called for iframe viewers.
+
+### New
+
+- `disableContent` prop, the same as in ngx-doc-viewer.
+- `DocumentViewerProps` type export.
+- `viewerType` is deprecated; use `ViewerType`.
+
+### Update your dependency
+
+```bash
+npm install react-documents@^3.0.0
+# or
+pnpm add react-documents@^3.0.0
+```
+
+---
+
 ## ngx-doc-viewer v16 → v21
 
 ### Angular version requirement
@@ -54,15 +128,17 @@ These changes only affect contributors working in this monorepo:
 |---|---|
 | npm | pnpm workspaces |
 | Nx 17 | removed (pnpm scripts) |
-| Angular 16 | Angular 21 |
+| Angular 16 | Angular 22 |
 | React 18 | React 19 |
 | react-router-dom 6 | react-router-dom 7 |
-| TypeScript 5.1 | TypeScript 5.8 |
+| TypeScript 5.1 | TypeScript 6.0 |
 | ESLint 8 (.eslintrc) | ESLint 10 (flat config) |
-| webpack (demo-react) | Vite 6 |
+| webpack (demo-react) | Vite 8 |
 | Rollup via @nx/rollup | tsup (docviewhelper, react-documents) |
 | @nx/angular:package | ng-packagr CLI directly |
 | zone.js 0.13 | zone.js 0.16 |
+| Jest 29 | Jest 30 |
+| @angular-devkit/build-angular (webpack) | @angular/build (esbuild) |
 
 ### Getting started after pulling these changes
 

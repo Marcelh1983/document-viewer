@@ -1,3 +1,22 @@
+# 22.0.0 (10/27/2026)
+Breaking changes:
+* requires Angular 17.3 or newer (use ngx-doc-viewer 21 for Angular 15 to 17.2)
+* inputs, outputs and internal state now use signals (`input()`, `output()`, `signal()`); template bindings are unchanged, code that sets or reads component properties directly must use `setInput()` / call the signal
+* the iframe no longer has an `id` (`iframe` / `iframe-doc-viewer`); use the `ngx-doc-viewer-iframe` class instead
+* `loaded` is emitted for every viewer (iframe, pdf and mammoth), once per load
+
+Changes:
+* built with Angular 22; the component follows the app's default change detection: `OnPush` on Angular 22+, `Eager` on Angular 21 and older
+* uses built-in control flow (`@if` / `@for`) and remounts the iframe/pdf object per load instead of forcing change detection
+* the mammoth viewer now shows a timeout error after 15 seconds, like the other viewers
+* the google reload probe starts after the iframe has rendered and is cancelled on destroy or a new load
+* fixed the loading overlay not showing when `retry()` is called outside an Angular event
+* fixed changes to `queryParams` and `overrideLocalhost` not reloading the document
+* fixed relative document urls not being encoded when passed to the google or office viewer
+* a missing mammoth script now shows a clear error message instead of `mammoth is not defined`
+* the google reload check now stops as soon as the document has loaded
+* `overrideLocalhost` now recognizes all private network addresses (`10.x`, `172.16-31.x`, `192.168.x`, `127.x`)
+
 # 21.0.0 (03/17/2026)
 * added a built-in loading overlay while external viewers and inline renderers initialize
 * added customizable loading content support with `loadingText` and projected Angular `loadingContent` templates

@@ -1,6 +1,9 @@
 import { getViewerRecoveryPlan } from './helper';
 import { ViewerRecoveryPlan, ViewerType } from './model';
 
+/** How long a document may take to load before the error state is shown. */
+export const LOAD_TIMEOUT_MS = 15000;
+
 export interface ViewerRecoveryConfig {
   viewer: ViewerType;
   googleCheckContentLoaded: boolean;
@@ -18,21 +21,21 @@ export interface ViewerRecoveryHandlers {
    */
   triggerRetry: () => void;
   /**
-   * The external viewer did not finish loading in time and no retry is pending.
+   * The document did not finish loading in time and no retry is pending.
    * The host should surface the timeout error (guarding on its own load phase).
    */
   reportTimeout: () => void;
 }
 
 /**
- * Framework-agnostic orchestration for the google/office iframe recovery logic
- * shared by ngx-doc-viewer and react-documents. Owns the load-timeout,
+ * Framework-agnostic orchestration for the load-timeout and google/office
+ * iframe recovery logic shared by ngx-doc-viewer and react-documents. Owns the load-timeout,
  * google-final-retry and office-auto-retry timers plus the per-source retry
  * bookkeeping. The google-probe iframe reload stays in the host because it is
  * framework specific (iframe refs, Angular zones).
  */
 export class ViewerRecoveryController {
-  private externalLoadTimeoutId?: ReturnType<typeof setTimeout>;
+  private loadTimeoutId?: ReturnType<typeof setTimeout>;
   private googleFinalRetryTimeoutId?: ReturnType<typeof setTimeout>;
   private officeRetryTimeoutId?: ReturnType<typeof setTimeout>;
   private googleFinalRetriedSourceKey?: string;
@@ -81,9 +84,9 @@ export class ViewerRecoveryController {
     const { viewer, googleCheckInterval, googleMaxChecks } = this.config;
     const timeoutMs =
       viewer === 'google'
-        ? Math.max(googleCheckInterval * googleMaxChecks + 2000, 15000)
-        : 15000;
-    this.externalLoadTimeoutId = setTimeout(() => {
+        ? Math.max(googleCheckInterval * googleMaxChecks + 2000, LOAD_TIMEOUT_MS)
+        : LOAD_TIMEOUT_MS;
+    this.loadTimeoutId = setTimeout(() => {
       if (!isActive()) {
         return;
       }
@@ -100,14 +103,27 @@ export class ViewerRecoveryController {
     return plan;
   }
 
-  /** The external viewer finished loading; stop all pending recovery timers. */
+  /**
+   * Begin watching an inline (mammoth) load. Clears any prior timers and arms
+   * the load-timeout; inline loads have no retry modes.
+   */
+  beginInlineLoad(isActive: () => boolean): void {
+    this.clearTimers();
+    this.loadTimeoutId = setTimeout(() => {
+      if (isActive()) {
+        this.handlers.reportTimeout();
+      }
+    }, LOAD_TIMEOUT_MS);
+  }
+
+  /** The document finished loading; stop all pending recovery timers. */
   notifyLoaded(): void {
     this.clearTimers();
   }
 
   /** Clear every pending recovery timer without tearing down state. */
   clearTimers(): void {
-    this.clearExternalLoadTimeout();
+    this.clearLoadTimeout();
     this.clearGoogleFinalRetry();
     this.clearOfficeRetry();
   }
@@ -172,10 +188,10 @@ export class ViewerRecoveryController {
     }, this.config.officeRetryDelay);
   }
 
-  private clearExternalLoadTimeout(): void {
-    if (this.externalLoadTimeoutId) {
-      clearTimeout(this.externalLoadTimeoutId);
-      this.externalLoadTimeoutId = undefined;
+  private clearLoadTimeout(): void {
+    if (this.loadTimeoutId) {
+      clearTimeout(this.loadTimeoutId);
+      this.loadTimeoutId = undefined;
     }
   }
 

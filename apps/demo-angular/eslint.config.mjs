@@ -1,11 +1,16 @@
+import angular from 'angular-eslint';
+import tseslint from 'typescript-eslint';
 import rootConfig from '../../eslint.config.mjs';
 
-export default [
+export default tseslint.config(
   ...rootConfig,
   {
     files: ['**/*.ts'],
-    rules: {
-      // Angular-specific rules disabled for now due to ESLint 10 compatibility
-    },
+    extends: [...angular.configs.tsRecommended],
+    processor: angular.processInlineTemplates,
   },
-];
+  {
+    files: ['**/*.html'],
+    extends: [...angular.configs.templateRecommended],
+  },
+);

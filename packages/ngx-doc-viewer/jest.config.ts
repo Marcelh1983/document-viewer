@@ -1,6 +1,7 @@
  
 export default {
   displayName: 'ngx-doc-viewer',
+  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   coverageDirectory: '../../coverage/packages/ngx-doc-viewer',
   transform: {
@@ -11,6 +12,9 @@ export default {
         stringifyContentPathRegex: '\\.(html|svg)$',
       },
     ],
+  },
+  moduleNameMapper: {
+    '^docviewhelper$': '<rootDir>/../docviewhelper/src/index.ts',
   },
   transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
   snapshotSerializers: [

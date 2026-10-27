@@ -1,52 +1,61 @@
 import {
+  AfterRenderRef,
   Component,
-  Input,
-  NgZone,
-  OnDestroy,
-  OnChanges,
-  SimpleChanges,
-  Output,
-  ViewChildren,
-  QueryList,
   ElementRef,
-  ChangeDetectorRef,
-  ContentChild,
+  Injector,
+  NgZone,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges,
   TemplateRef,
+  afterNextRender,
+  computed,
+  contentChild,
+  inject,
+  input,
+  output,
+  signal,
+  viewChild,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { EventEmitter } from '@angular/core';
 import {
-  getDocxToHtml,
-  getViewerDetails,
-  googleCheckSubscription,
-  iframeIsLoaded,
-  isLocalFile,
-  replaceLocalUrl,
+  DisableContent,
   IFrameReloader,
   ViewerRecoveryConfig,
   ViewerRecoveryController,
+  ViewerRenderPhase,
+  ViewerType,
+  getDisableContentOverlay,
+  getDocxToHtml,
+  googleCheckSubscription,
+  iframeIsLoaded,
+  resolveViewerDetails,
 } from 'docviewhelper';
 
- 
-export type viewerType = 'google' | 'office' | 'mammoth' | 'pdf' | 'url';
-type ViewerRenderPhase = 'idle' | 'loading' | 'ready' | 'error';
+/** @deprecated Use `ViewerType` instead. */
+export type viewerType = ViewerType;
 interface ViewerTemplateContext {
   $implicit: ViewerStateContext;
   state: ViewerStateContext;
 }
 export interface ViewerStateContext {
-  viewer: viewerType;
+  viewer: ViewerType;
   url: string;
   phase: ViewerRenderPhase;
   errorText: string;
   retry: () => void;
   actionUrl: string;
 }
+
+const SUPPORTED_VIEWERS: ViewerType[] = ['google', 'office', 'mammoth', 'pdf', 'url'];
+// Inputs that change which document is shown; any of them starts a new load.
+const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLocalhost'];
+
 @Component({
   selector: 'ngx-doc-viewer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgTemplateOutlet],
   templateUrl: 'document-viewer.component.html',
   styles: [
     `
@@ -160,21 +169,62 @@ export interface ViewerStateContext {
         text-align: center;
         padding: 16px;
       }
+      .error-viewer {
+        margin-top: 8px;
+        color: #475569;
+      }
+      .error-url {
+        margin-top: 4px;
+        color: #64748b;
+        font-size: 12px;
+        word-break: break-word;
+      }
+      .error-actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .retry-btn {
+        border: 1px solid #fecaca;
+        background: #fff;
+        color: #991b1b;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+      .secondary-action-btn {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        border-radius: 999px;
+        padding: 8px 14px;
+        text-decoration: none;
+        font: inherit;
+      }
+      .overlay {
+        position: absolute;
+        z-index: 1000;
+      }
       .overlay-popout-google {
         width: 40px;
         height: 40px;
         right: 26px;
         top: 11.5px;
-        position: absolute;
-        z-index: 1000;
       }
       .overlay-popout-office {
         width: 100px;
         height: 20px;
         right: 0;
         bottom: 0;
-        position: absolute;
-        z-index: 1000;
+      }
+      .overlay-full {
+        width: 100%;
+        height: 100%;
+        right: 0;
+        top: 0;
       }
       .office-reload-btn {
         position: absolute;
@@ -200,15 +250,9 @@ export interface ViewerStateContext {
       .office-reload-btn:hover {
         opacity: 1;
       }
-      .overlay-full {
-        width: 100%;
-        height: 100%;
-        right: 0;
-        top: 0;
-        position: absolute;
-        z-index: 1000;
-      }
-      iframe {
+      iframe,
+      object {
+        display: block;
         width: 100%;
         height: 100%;
       }
@@ -224,281 +268,193 @@ export interface ViewerStateContext {
     `,
   ],
 })
-export class NgxDocViewerComponent
-  implements OnChanges, OnDestroy
-{
-  @Output() loaded: EventEmitter<void> = new EventEmitter();
-  @Output() loading: EventEmitter<ViewerStateContext> = new EventEmitter();
-  @Output() error: EventEmitter<ViewerStateContext> = new EventEmitter();
-  @Output() phaseChange: EventEmitter<ViewerStateContext> = new EventEmitter();
-  @Input() url = '';
-  @Input() queryParams = '';
-  @Input() viewerUrl = '';
-  @Input() googleCheckInterval = 3000;
-  @Input() googleMaxChecks = 5;
-  @Input() googleFinalRetryDelay = 0;
-  @Input() disableContent: 'none' | 'all' | 'popout' | 'popout-hide' = 'none';
-  @Input() googleCheckContentLoaded = true;
-  @Input() viewer: viewerType = 'google';
-  @Input() overrideLocalhost = '';
-  @Input() loadingText = 'Loading document...';
-  @Input() errorTextOverride = '';
-  @Input() retryButtonText = 'Retry';
-  @Input() officeAutoRetry = false;
-  @Input() officeRetryDelay = 3000;
-  @Input() officeReloadButtonText = '↻';
-  @Input() officeReloadButtonTitle = 'Reload document';
-  @Input() secondaryActionText = '';
-  @Input() secondaryActionMode: 'open' | 'download' = 'open';
-  @ContentChild('loadingContent', { read: TemplateRef })
-  loadingTemplate?: TemplateRef<unknown>;
-  @ContentChild('errorContent', { read: TemplateRef })
-  errorTemplate?: TemplateRef<unknown>;
-  @ContentChild('errorActions', { read: TemplateRef })
-  errorActionsTemplate?: TemplateRef<unknown>;
-  @ContentChild('officeReloadContent', { read: TemplateRef })
-  officeReloadTemplate?: TemplateRef<unknown>;
-  @ViewChildren('iframe') iframes?: QueryList<ElementRef> = undefined;
+export class NgxDocViewerComponent implements OnChanges, OnDestroy {
+  private readonly domSanitizer = inject(DomSanitizer);
+  private readonly ngZone = inject(NgZone);
+  private readonly injector = inject(Injector);
 
-  public fullUrl?: SafeResourceUrl = undefined;
-  public externalViewer = false;
-  public docHtml = '';
-  public configuredViewer: viewerType = 'google';
-  public showIframe = true;
-  public renderPhase: ViewerRenderPhase = 'idle';
-  public errorText = '';
-  public failedUrl = '';
-  public retryNonce = 0;
-  public loadingTemplateContext: ViewerTemplateContext = this.createTemplateContext();
-  public errorTemplateContext: ViewerTemplateContext = this.createTemplateContext();
+  readonly loaded = output<void>();
+  readonly loading = output<ViewerStateContext>();
+  // eslint-disable-next-line @angular-eslint/no-output-native -- public API since v21
+  readonly error = output<ViewerStateContext>();
+  readonly phaseChange = output<ViewerStateContext>();
+
+  readonly url = input('');
+  readonly queryParams = input('');
+  readonly viewerUrl = input('');
+  readonly googleCheckInterval = input(3000);
+  readonly googleMaxChecks = input(5);
+  readonly googleFinalRetryDelay = input(0);
+  readonly disableContent = input<DisableContent>('none');
+  readonly googleCheckContentLoaded = input(true);
+  readonly viewer = input<ViewerType>('google');
+  readonly overrideLocalhost = input('');
+  readonly loadingText = input('Loading document...');
+  readonly errorTextOverride = input('');
+  readonly retryButtonText = input('Retry');
+  readonly officeAutoRetry = input(false);
+  readonly officeRetryDelay = input(3000);
+  readonly officeReloadButtonText = input('↻');
+  readonly officeReloadButtonTitle = input('Reload document');
+  readonly secondaryActionText = input('');
+  readonly secondaryActionMode = input<'open' | 'download'>('open');
+
+  readonly loadingTemplate = contentChild('loadingContent', { read: TemplateRef });
+  readonly errorTemplate = contentChild('errorContent', { read: TemplateRef });
+  readonly errorActionsTemplate = contentChild('errorActions', { read: TemplateRef });
+  readonly officeReloadTemplate = contentChild('officeReloadContent', {
+    read: TemplateRef,
+  });
+  private readonly iframe = viewChild<ElementRef<HTMLIFrameElement>>('iframe');
+
+  readonly renderPhase = signal<ViewerRenderPhase>('idle');
+  readonly externalViewer = signal(false);
+  readonly fullUrl = signal<SafeResourceUrl | undefined>(undefined);
+  readonly docHtml = signal('');
+  readonly errorText = signal('');
+  readonly sourceUrl = signal('');
+  // A new key per load remounts the iframe/object so it loads (and fires load) again.
+  private readonly loadKey = signal(0);
+  readonly loadKeys = computed(() => (this.fullUrl() ? [this.loadKey()] : []));
+  readonly displayedErrorText = computed(
+    () => this.errorTextOverride() || this.errorText() || 'Unable to load document.',
+  );
+  readonly overlayClass = computed(() => {
+    const overlay = getDisableContentOverlay(this.viewer(), this.disableContent());
+    return overlay ? `overlay overlay-${overlay}` : undefined;
+  });
+  readonly templateContext = computed<ViewerTemplateContext>(() => {
+    const state: ViewerStateContext = {
+      viewer: this.viewer(),
+      url: this.sourceUrl() || this.url(),
+      phase: this.renderPhase(),
+      errorText: this.displayedErrorText(),
+      retry: () => this.retryLoad(),
+      actionUrl: this.sourceUrl() || this.url(),
+    };
+    return { $implicit: state, state };
+  });
+
   private checkIFrameSubscription?: IFrameReloader = undefined;
-  private loadVersion = 0;
+  private googleProbe?: AfterRenderRef = undefined;
   private recovery?: ViewerRecoveryController = undefined;
   private lastEmittedPhase?: ViewerRenderPhase = undefined;
 
-  constructor(
-    private domSanitizer: DomSanitizer,
-    private ngZone: NgZone,
-    private cdr: ChangeDetectorRef,
-  ) {}
-
   ngOnDestroy(): void {
     this.recovery?.dispose();
-    if (this.checkIFrameSubscription) {
-      this.checkIFrameSubscription.unsubscribe();
-    }
+    this.stopGoogleProbe();
   }
 
-  async ngOnChanges(changes: SimpleChanges): Promise<void> {
-    if (
-      changes &&
-      changes['retryNonce'] &&
-      changes['retryNonce'].firstChange
-    ) {
-      return;
-    }
-    if (
-      changes &&
-      changes['viewer'] &&
-      (changes['viewer'].firstChange ||
-        changes['viewer'].currentValue !== changes['viewer'].previousValue)
-    ) {
-      if (
-        this.viewer !== 'google' &&
-        this.viewer !== 'office' &&
-        this.viewer !== 'mammoth' &&
-        this.viewer !== 'pdf' &&
-        this.viewer !== 'url'
-      ) {
-        console.error(
-          `Unsupported viewer: '${this.viewer}'. Supported viewers: google, office, mammoth and pdf`,
-        );
-      }
-      this.configuredViewer = this.viewer;
-      this.updateTemplateContexts();
-    }
-
-    if (
-      (changes['url'] &&
-        changes['url'].currentValue !== changes['url'].previousValue) ||
-      (changes['viewer'] &&
-        changes['viewer'].currentValue !== changes['viewer'].previousValue) ||
-      (changes['viewerUrl'] &&
-        changes['viewerUrl'].currentValue !==
-          changes['viewerUrl'].previousValue)
-    ) {
-      let viewerDetails = getViewerDetails(
-        this.url,
-        this.configuredViewer,
-        this.queryParams,
-        this.viewerUrl,
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['viewer'] && !SUPPORTED_VIEWERS.includes(this.viewer())) {
+      console.error(
+        `Unsupported viewer: '${this.viewer()}'. Supported viewers: ${SUPPORTED_VIEWERS.join(', ')}`,
       );
-      const loadVersion = ++this.loadVersion;
-      const recovery = this.ensureRecovery();
-      recovery.clearTimers();
-      this.externalViewer = viewerDetails.externalViewer;
-      if (
-        viewerDetails.externalViewer &&
-        this.overrideLocalhost &&
-        isLocalFile(this.url)
-      ) {
-        const newUrl = replaceLocalUrl(this.url, this.overrideLocalhost);
-        viewerDetails = getViewerDetails(
-          newUrl,
-          this.configuredViewer,
-          this.queryParams,
-          this.viewerUrl,
-        );
-      }
-      recovery.trackSource(viewerDetails.url);
-      this.docHtml = '';
-      this.errorText = '';
-      this.failedUrl = this.url;
-      this.updateTemplateContexts();
-      if (this.checkIFrameSubscription) {
-        this.checkIFrameSubscription.unsubscribe();
-      }
-      if (!this.url) {
-        this.fullUrl = undefined;
-        this.showIframe = false;
-        this.externalViewer = false;
-        this.setRenderPhase('idle');
-        this.updateTemplateContexts();
-      } else if (
-        viewerDetails.externalViewer ||
-        this.configuredViewer === 'url' ||
-        this.configuredViewer === 'pdf'
-      ) {
-        this.setRenderPhase('loading');
-        const iframeUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(
-          viewerDetails.url,
-        );
-        this.fullUrl = undefined;
-        this.showIframe = false;
-        this.cdr.detectChanges();
-        this.fullUrl = iframeUrl;
-        this.showIframe = true;
-        this.updateTemplateContexts();
-        const plan = recovery.beginExternalLoad(
-          () => loadVersion === this.loadVersion,
-        );
-        this.cdr.detectChanges();
-        if (plan.modes.includes('google-probe')) {
-          this.scheduleGoogleProbe();
-        }
-      } else if (this.configuredViewer === 'mammoth') {
-        this.setRenderPhase('loading');
-        this.externalViewer = false;
-        this.fullUrl = undefined;
-        this.showIframe = false;
-        try {
-          const docHtml = await getDocxToHtml(this.url);
-          if (loadVersion !== this.loadVersion) {
-            return;
-          }
-          this.ngZone.run(() => {
-            this.docHtml = docHtml;
-            this.setRenderPhase('ready');
-            this.updateTemplateContexts();
-            this.cdr.detectChanges();
-          });
-        } catch (error) {
-          if (loadVersion !== this.loadVersion) {
-            return;
-          }
-          this.ngZone.run(() => {
-            this.errorText =
-              error instanceof Error ? error.message : 'Unable to load document.';
-            this.setRenderPhase('error');
-            this.updateTemplateContexts();
-            this.cdr.detectChanges();
-          });
-        }
-      }
+    }
+    if (
+      SOURCE_INPUTS.some(
+        (name) =>
+          changes[name] &&
+          changes[name].currentValue !== changes[name].previousValue,
+      )
+    ) {
+      this.load();
     }
   }
 
   retryLoad() {
-    this.retryNonce += 1;
-    const retryVersion = ++this.loadVersion;
-    const recovery = this.ensureRecovery();
-    recovery.clearTimers();
-    this.errorText = '';
-    this.setRenderPhase(this.url ? 'loading' : 'idle');
-    this.updateTemplateContexts();
+    this.load();
+  }
 
-    if (!this.url) {
-      return;
-    }
-
-    if (this.configuredViewer === 'mammoth') {
-      this.docHtml = '';
-      void this.reloadMammoth(retryVersion);
-      return;
-    }
-
-    if (
-      this.configuredViewer === 'google' ||
-      this.configuredViewer === 'office' ||
-      this.configuredViewer === 'url' ||
-      this.configuredViewer === 'pdf'
-    ) {
-      const details = getViewerDetails(
-        this.url,
-        this.configuredViewer,
-        this.queryParams,
-        this.viewerUrl,
-      );
-      const finalUrl =
-        details.externalViewer && this.overrideLocalhost && isLocalFile(this.url)
-          ? getViewerDetails(
-              replaceLocalUrl(this.url, this.overrideLocalhost),
-              this.configuredViewer,
-              this.queryParams,
-              this.viewerUrl,
-            ).url
-          : details.url;
-
-      this.fullUrl = undefined;
-      this.showIframe = false;
-      this.cdr.detectChanges();
-      this.fullUrl =
-        this.domSanitizer.bypassSecurityTrustResourceUrl(finalUrl);
-      this.showIframe = true;
-      const plan = recovery.beginExternalLoad(
-        () => retryVersion === this.loadVersion,
-      );
-      if (plan.modes.includes('google-probe')) {
-        this.scheduleGoogleProbe();
-      }
-      this.updateTemplateContexts();
-      this.cdr.detectChanges();
+  iframeLoaded() {
+    const iframe = this.iframe()?.nativeElement;
+    if (iframe && iframeIsLoaded(iframe)) {
+      this.recovery?.notifyLoaded();
+      this.checkIFrameSubscription?.unsubscribe();
+      this.setRenderPhase('ready');
     }
   }
 
-  private reloadIframe(iframe: HTMLIFrameElement) {
-    this.checkIFrameSubscription = googleCheckSubscription();
-    this.checkIFrameSubscription.subscribe(
-      iframe,
-      this.googleCheckInterval,
-      this.googleMaxChecks,
-    );
+  objectLoaded() {
+    this.recovery?.notifyLoaded();
+    this.setRenderPhase('ready');
+  }
+
+  private load() {
+    const loadKey = this.loadKey() + 1;
+    const isActive = () => loadKey === this.loadKey();
+    this.loadKey.set(loadKey);
+    const recovery = this.ensureRecovery();
+    this.stopGoogleProbe();
+
+    const url = this.url();
+    const viewer = this.viewer();
+    const details = resolveViewerDetails({
+      url,
+      viewer,
+      queryParams: this.queryParams(),
+      viewerUrl: this.viewerUrl(),
+      overrideLocalhost: this.overrideLocalhost(),
+    });
+    recovery.trackSource(details.url);
+    this.externalViewer.set(!!url && details.externalViewer);
+    this.fullUrl.set(undefined);
+    this.docHtml.set('');
+    this.errorText.set('');
+    this.sourceUrl.set(url);
+
+    if (!url) {
+      recovery.clearTimers();
+      this.setRenderPhase('idle');
+      return;
+    }
+    this.setRenderPhase('loading');
+
+    if (viewer === 'mammoth') {
+      recovery.beginInlineLoad(isActive);
+      getDocxToHtml(details.url).then(
+        (html) => {
+          if (!isActive()) {
+            return;
+          }
+          recovery.notifyLoaded();
+          this.docHtml.set(html);
+          this.setRenderPhase('ready');
+        },
+        (error) => {
+          if (!isActive()) {
+            return;
+          }
+          recovery.clearTimers();
+          this.errorText.set(
+            error instanceof Error ? error.message : 'Unable to load document.',
+          );
+          this.setRenderPhase('error');
+        },
+      );
+      return;
+    }
+
+    this.fullUrl.set(this.domSanitizer.bypassSecurityTrustResourceUrl(details.url));
+    const plan = recovery.beginExternalLoad(isActive);
+    if (plan.modes.includes('google-probe')) {
+      this.startGoogleProbe(isActive);
+    }
   }
 
   private ensureRecovery(): ViewerRecoveryController {
     if (!this.recovery) {
       this.recovery = new ViewerRecoveryController(this.buildRecoveryConfig(), {
-        triggerRetry: () => this.ngZone.run(() => this.retryLoad()),
-        reportTimeout: () =>
-          this.ngZone.run(() => {
-            if (this.renderPhase !== 'loading') {
-              return;
-            }
-            this.errorText = `The ${this.configuredViewer} viewer did not finish loading in time.`;
-            this.setRenderPhase('error');
-            this.updateTemplateContexts();
-            this.cdr.detectChanges();
-          }),
+        triggerRetry: () => this.retryLoad(),
+        reportTimeout: () => {
+          if (this.renderPhase() !== 'loading') {
+            return;
+          }
+          this.errorText.set(
+            `The ${this.viewer()} viewer did not finish loading in time.`,
+          );
+          this.setRenderPhase('error');
+        },
       });
     }
     this.recovery.configure(this.buildRecoveryConfig());
@@ -507,121 +463,63 @@ export class NgxDocViewerComponent
 
   private buildRecoveryConfig(): ViewerRecoveryConfig {
     return {
-      viewer: this.configuredViewer,
-      googleCheckContentLoaded: this.googleCheckContentLoaded,
-      googleCheckInterval: this.googleCheckInterval,
-      googleMaxChecks: this.googleMaxChecks,
-      googleFinalRetryDelay: this.googleFinalRetryDelay,
-      officeAutoRetry: this.officeAutoRetry,
-      officeRetryDelay: this.officeRetryDelay,
+      viewer: this.viewer(),
+      googleCheckContentLoaded: this.googleCheckContentLoaded(),
+      googleCheckInterval: this.googleCheckInterval(),
+      googleMaxChecks: this.googleMaxChecks(),
+      googleFinalRetryDelay: this.googleFinalRetryDelay(),
+      officeAutoRetry: this.officeAutoRetry(),
+      officeRetryDelay: this.officeRetryDelay(),
     };
   }
 
-  private scheduleGoogleProbe() {
-    // see:
-    // https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
-    // hack to reload iframe if it's not loaded.
-    this.ngZone.runOutsideAngular(() => {
-      window.setTimeout(() => {
-        const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
-        if (iframe) {
-          this.reloadIframe(iframe);
+  // Google sometimes answers with an empty 204 page; reload the iframe until the
+  // viewer shows up. Starts once the iframe for this load has been rendered.
+  // see: https://stackoverflow.com/questions/40414039/google-docs-viewer-returning-204-responses-no-longer-working-alternatives
+  private startGoogleProbe(isActive: () => boolean) {
+    this.googleProbe = afterNextRender(
+      () => {
+        this.googleProbe = undefined;
+        const iframe = this.iframe()?.nativeElement;
+        if (!isActive() || !iframe) {
+          return;
         }
-      }, 0);
-    });
+        this.checkIFrameSubscription = googleCheckSubscription();
+        this.ngZone.runOutsideAngular(() =>
+          this.checkIFrameSubscription?.subscribe(
+            iframe,
+            this.googleCheckInterval(),
+            this.googleMaxChecks(),
+          ),
+        );
+      },
+      { injector: this.injector },
+    );
   }
 
-  iframeLoaded() {
-    const iframe = this.iframes?.first?.nativeElement as HTMLIFrameElement;
-    if (iframe && iframeIsLoaded(iframe)) {
-      this.recovery?.notifyLoaded();
-      this.setRenderPhase('ready');
-      this.updateTemplateContexts();
-      this.loaded.emit(undefined);
-      if (this.checkIFrameSubscription) {
-        this.checkIFrameSubscription.unsubscribe();
-      }
-    }
-  }
-
-  objectLoaded() {
-    this.recovery?.notifyLoaded();
-    this.setRenderPhase('ready');
-    this.updateTemplateContexts();
-  }
-
-  private async reloadMammoth(loadVersion: number) {
-    this.externalViewer = false;
-    this.fullUrl = undefined;
-    this.showIframe = false;
-    try {
-      const docHtml = await getDocxToHtml(this.url);
-      if (loadVersion !== this.loadVersion) {
-        return;
-      }
-      this.ngZone.run(() => {
-        this.docHtml = docHtml;
-        this.setRenderPhase('ready');
-        this.updateTemplateContexts();
-        this.cdr.detectChanges();
-      });
-    } catch (error) {
-      if (loadVersion !== this.loadVersion) {
-        return;
-      }
-      this.ngZone.run(() => {
-        this.errorText =
-          error instanceof Error ? error.message : 'Unable to load document.';
-        this.setRenderPhase('error');
-        this.updateTemplateContexts();
-        this.cdr.detectChanges();
-      });
-    }
-  }
-
-  get displayedErrorText() {
-    return this.errorTextOverride || this.errorText || 'Unable to load document.';
-  }
-
-  private updateTemplateContexts() {
-    const state = this.createStateContext();
-    this.loadingTemplateContext = { $implicit: state, state };
-    this.errorTemplateContext = { $implicit: state, state };
-  }
-
-  private createTemplateContext(): ViewerTemplateContext {
-    const state = this.createStateContext();
-    return { $implicit: state, state };
-  }
-
-  private createStateContext(): ViewerStateContext {
-    return {
-      viewer: this.configuredViewer,
-      url: this.failedUrl || this.url,
-      phase: this.renderPhase,
-      errorText: this.displayedErrorText,
-      retry: () => this.retryLoad(),
-      actionUrl: this.failedUrl || this.url,
-    };
+  private stopGoogleProbe() {
+    this.googleProbe?.destroy();
+    this.googleProbe = undefined;
+    this.checkIFrameSubscription?.unsubscribe();
+    this.checkIFrameSubscription = undefined;
   }
 
   private setRenderPhase(phase: ViewerRenderPhase) {
-    this.renderPhase = phase;
-    this.emitLifecycleIfNeeded();
-  }
-
-  private emitLifecycleIfNeeded() {
-    if (this.lastEmittedPhase === this.renderPhase) {
+    this.renderPhase.set(phase);
+    if (this.lastEmittedPhase === phase) {
       return;
     }
-    this.lastEmittedPhase = this.renderPhase;
-    const state = this.createStateContext();
+    this.lastEmittedPhase = phase;
+    const { state } = this.templateContext();
     this.phaseChange.emit(state);
-    if (this.renderPhase === 'loading') {
+    if (phase === 'loading') {
       this.loading.emit(state);
     }
-    if (this.renderPhase === 'error') {
+    if (phase === 'error') {
       this.error.emit(state);
+    }
+    if (phase === 'ready') {
+      this.loaded.emit();
     }
   }
 }

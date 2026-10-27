@@ -1,12 +1,14 @@
+import reactHooks from 'eslint-plugin-react-hooks';
 import rootConfig from '../../eslint.config.mjs';
 
 export default [
   ...rootConfig,
   {
-    files: ['**/*.tsx', '**/*.jsx'],
+    files: ['**/*.ts', '**/*.tsx'],
+    plugins: { 'react-hooks': reactHooks },
     rules: {
-      // Basic React rules without plugin dependencies
-      'no-undef': 'off', // React handles this
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 ];

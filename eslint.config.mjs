@@ -10,7 +10,6 @@ export default tseslint.config(
       '.opencode/**',
       'coverage/**',
       '**/*.d.ts',
-      '**/*.html',
     ],
   },
   {

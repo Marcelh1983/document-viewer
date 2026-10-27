@@ -14,6 +14,9 @@ export default {
       },
     ],
   },
+  moduleNameMapper: {
+    '^docviewhelper$': '<rootDir>/../docviewhelper/src/index.ts',
+  },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageDirectory: '../../coverage/packages/react-documents',
 };

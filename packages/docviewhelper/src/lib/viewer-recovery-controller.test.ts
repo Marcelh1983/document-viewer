@@ -25,6 +25,33 @@ describe('ViewerRecoveryController', () => {
     reportTimeout: jest.fn(),
   });
 
+  it('reports a timeout when an inline load never finishes', () => {
+    const handlers = makeHandlers();
+    const controller = new ViewerRecoveryController(
+      baseConfig({ viewer: 'mammoth' }),
+      handlers,
+    );
+
+    controller.beginInlineLoad(() => true);
+    jest.advanceTimersByTime(14999);
+    expect(handlers.reportTimeout).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(handlers.reportTimeout).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report an inline timeout once loaded', () => {
+    const handlers = makeHandlers();
+    const controller = new ViewerRecoveryController(
+      baseConfig({ viewer: 'mammoth' }),
+      handlers,
+    );
+
+    controller.beginInlineLoad(() => true);
+    controller.notifyLoaded();
+    jest.advanceTimersByTime(20000);
+    expect(handlers.reportTimeout).not.toHaveBeenCalled();
+  });
+
   it('reports a timeout when a plain google viewer never loads', () => {
     const handlers = makeHandlers();
     const controller = new ViewerRecoveryController(baseConfig(), handlers);

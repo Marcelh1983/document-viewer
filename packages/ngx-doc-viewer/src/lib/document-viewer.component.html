@@ -1,117 +1,101 @@
 <div class="container">
-  <div *ngIf="renderPhase === 'loading'" class="loading-overlay">
-    <ng-container *ngIf="loadingTemplate; else defaultLoadingTemplate">
-      <ng-container *ngTemplateOutlet="loadingTemplate; context: loadingTemplateContext"></ng-container>
-    </ng-container>
-    <ng-template #defaultLoadingTemplate>{{ loadingText }}</ng-template>
-  </div>
-  <div *ngIf="renderPhase === 'error'" class="error-overlay">
-    <ng-container *ngIf="errorTemplate; else defaultErrorTemplate">
-      <ng-container *ngTemplateOutlet="errorTemplate; context: errorTemplateContext"></ng-container>
-    </ng-container>
-    <ng-template #defaultErrorTemplate>
-      <div>
-        <div>{{ displayedErrorText }}</div>
-        <div *ngIf="configuredViewer" style="margin-top: 8px; color: #475569;">
-          Viewer: {{ configuredViewer }}
-        </div>
-        <div *ngIf="failedUrl" style="margin-top: 4px; color: #64748b; font-size: 12px; word-break: break-word;">
-          {{ failedUrl }}
-        </div>
-        <ng-container *ngIf="errorActionsTemplate; else defaultErrorActions">
-          <ng-container *ngTemplateOutlet="errorActionsTemplate; context: errorTemplateContext"></ng-container>
-        </ng-container>
-        <ng-template #defaultErrorActions>
-          <div style="margin-top: 14px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-            <button
-              type="button"
-              (click)="retryLoad()"
-              style="border: 1px solid #fecaca; background: #fff; color: #991b1b; border-radius: 999px; padding: 8px 14px; font: inherit; cursor: pointer;"
-            >
-              {{ retryButtonText }}
-            </button>
-            <a
-              *ngIf="secondaryActionText && failedUrl"
-              [href]="failedUrl"
-              [attr.target]="secondaryActionMode === 'open' ? '_blank' : null"
-              [attr.rel]="secondaryActionMode === 'open' ? 'noreferrer' : null"
-              [attr.download]="secondaryActionMode === 'download' ? '' : null"
-              style="border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 999px; padding: 8px 14px; text-decoration: none; font: inherit;"
-            >
-              {{ secondaryActionText }}
-            </a>
-          </div>
-        </ng-template>
-      </div>
-    </ng-template>
-  </div>
-
-  <ng-container *ngIf="!externalViewer">
-    <div *ngIf="configuredViewer !== 'pdf'" class="inline-document-shell">
-      <div class="inline-document-page" [innerHTML]="docHtml"></div>
+  @if (renderPhase() === 'loading') {
+    <div class="loading-overlay">
+      @if (loadingTemplate(); as template) {
+        <ng-container *ngTemplateOutlet="template; context: templateContext()" />
+      } @else {
+        {{ loadingText() }}
+      }
     </div>
-    <object
-      (load)="objectLoaded()"
-      *ngIf="fullUrl && configuredViewer === 'pdf'"
-      [data]="fullUrl"
-      type="application/pdf"
-      width="100%"
-      height="100%"
-    >
-      <p>
-        Your browser does not support PDFs.
-        <a [href]="fullUrl">Download the PDF</a>.
-      </p>
-    </object>
-  </ng-container>
+  }
+  @if (renderPhase() === 'error') {
+    <div class="error-overlay">
+      @if (errorTemplate(); as template) {
+        <ng-container *ngTemplateOutlet="template; context: templateContext()" />
+      } @else {
+        <div>
+          <div>{{ displayedErrorText() }}</div>
+          <div class="error-viewer">Viewer: {{ viewer() }}</div>
+          @if (sourceUrl()) {
+            <div class="error-url">{{ sourceUrl() }}</div>
+          }
+          @if (errorActionsTemplate(); as template) {
+            <ng-container *ngTemplateOutlet="template; context: templateContext()" />
+          } @else {
+            <div class="error-actions">
+              <button type="button" class="retry-btn" (click)="retryLoad()">
+                {{ retryButtonText() }}
+              </button>
+              @if (secondaryActionText() && sourceUrl()) {
+                <a
+                  class="secondary-action-btn"
+                  [href]="sourceUrl()"
+                  [attr.target]="secondaryActionMode() === 'open' ? '_blank' : null"
+                  [attr.rel]="secondaryActionMode() === 'open' ? 'noreferrer' : null"
+                  [attr.download]="secondaryActionMode() === 'download' ? '' : null"
+                >
+                  {{ secondaryActionText() }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
 
-  <button
-    *ngIf="configuredViewer === 'office' && renderPhase === 'ready'"
-    class="office-reload-btn"
-    type="button"
-    [attr.title]="officeReloadButtonTitle"
-    (click)="retryLoad()"
-  >
-    <ng-container *ngIf="officeReloadTemplate; else defaultOfficeReloadTemplate">
-      <ng-container *ngTemplateOutlet="officeReloadTemplate; context: errorTemplateContext"></ng-container>
-    </ng-container>
-    <ng-template #defaultOfficeReloadTemplate>{{ officeReloadButtonText }}</ng-template>
-  </button>
-
-  <ng-container *ngIf="externalViewer">
-    <iframe
-      (load)="iframeLoaded()"
-      *ngIf="fullUrl && showIframe && disableContent === 'none'"
-      #iframe
-      id="iframe-doc-viewer"
-      frameBorder="0"
-      allow="clipboard-read; clipboard-write"
-      [src]="fullUrl"
-    ></iframe>
-    <div class="container" *ngIf="disableContent !== 'none'">
-      <div
-        [class.overlay-full]="disableContent === 'all'"
-        [class.overlay-popout-google]="
-          configuredViewer === 'google' &&
-          (disableContent === 'popout' || disableContent === 'popout-hide')
-        "
-        [class.overlay-popout-office]="
-          configuredViewer === 'office' &&
-          (disableContent === 'popout' || disableContent === 'popout-hide')
-        "
-        [style.background-color]="
-          disableContent === 'popout-hide' ? '#fff' : 'transparent'
-        "
-      ></div>
+  @if (externalViewer()) {
+    @for (key of loadKeys(); track key) {
       <iframe
-        (load)="iframeLoaded()"
-        *ngIf="fullUrl && showIframe"
         #iframe
-        id="iframe"
+        class="ngx-doc-viewer-iframe"
+        title="Document viewer"
         frameBorder="0"
         allow="clipboard-read; clipboard-write"
-        [src]="fullUrl"
+        [src]="fullUrl()"
+        (load)="iframeLoaded()"
       ></iframe>
+    }
+    @if (overlayClass(); as overlay) {
+      <div
+        [class]="overlay"
+        [style.background-color]="disableContent() === 'popout-hide' ? '#fff' : 'transparent'"
+      ></div>
+    }
+  } @else if (viewer() === 'pdf') {
+    @for (key of loadKeys(); track key) {
+      <object
+        class="ngx-doc-viewer-object"
+        type="application/pdf"
+        width="100%"
+        height="100%"
+        [data]="fullUrl()"
+        (load)="objectLoaded()"
+      >
+        <p>
+          Your browser does not support PDFs.
+          <a [href]="fullUrl()">Download the PDF</a>.
+        </p>
+      </object>
+    }
+  } @else {
+    <div class="inline-document-shell">
+      <div class="inline-document-page" [innerHTML]="docHtml()"></div>
     </div>
-  </ng-container>
+  }
+
+  @if (viewer() === 'office' && renderPhase() === 'ready') {
+    <button
+      class="office-reload-btn"
+      type="button"
+      [attr.title]="officeReloadButtonTitle()"
+      (click)="retryLoad()"
+    >
+      @if (officeReloadTemplate(); as template) {
+        <ng-container *ngTemplateOutlet="template; context: templateContext()" />
+      } @else {
+        {{ officeReloadButtonText() }}
+      }
+    </button>
+  }
 </div>

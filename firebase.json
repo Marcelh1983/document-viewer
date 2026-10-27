@@ -15,7 +15,7 @@
     {
       "target": "demo-react",
       "public": "dist/apps/demo-react",
-      "predeploy": ["vite build --config apps/demo-react/vite.config.ts"],
+      "predeploy": ["vite build --config apps/demo-react/vite.config.mts"],
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {

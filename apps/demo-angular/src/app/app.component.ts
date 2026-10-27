@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgxDocViewerModule } from 'ngx-doc-viewer';
@@ -23,9 +23,10 @@ export class AppComponent {
   private router = inject(Router);
 
   viewers = viewers;
-  selectedViewer = getDemoViewer();
-  selectedDoc = this.selectedViewer.docs[0];
-  customUrl = '';
+  selectedViewer = signal(getDemoViewer());
+  selectedDoc = signal(this.selectedViewer().docs[0]);
+  customUrl = signal('');
+  selectedUrl = computed(() => this.customUrl() || this.selectedDoc().url);
 
   constructor() {
     this.route.paramMap.subscribe((params) => {
@@ -39,14 +40,14 @@ export class AppComponent {
         return;
       }
 
-      this.selectedViewer = viewer;
-      this.selectedDoc = doc;
-      this.customUrl = '';
+      this.selectedViewer.set(viewer);
+      this.selectedDoc.set(doc);
+      this.customUrl.set('');
     });
   }
 
   selectViewer(viewerName: ViewerType) {
-    if (viewerName !== this.selectedViewer.name) {
+    if (viewerName !== this.selectedViewer().name) {
       const viewer = getDemoViewer(viewerName);
       const doc = viewer.docs[0];
       void this.navigate(viewer.name, doc.type);
@@ -54,22 +55,18 @@ export class AppComponent {
   }
 
   selectDoc(doc: DemoDoc) {
-    if (doc.type !== this.selectedDoc.type) {
-      void this.navigate(this.selectedViewer.name, doc.type);
+    if (doc.type !== this.selectedDoc().type) {
+      void this.navigate(this.selectedViewer().name, doc.type);
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async handleFiles(fileInput: any) {
-    this.customUrl = await handleFileUpload(fileInput);
+    this.customUrl.set(await handleFileUpload(fileInput));
   }
 
   loadCustomUrl(url: string) {
-    this.customUrl = url;
-  }
-
-  get selectedUrl() {
-    return this.customUrl || this.selectedDoc.url;
+    this.customUrl.set(url);
   }
 
   trackByDocType(_index: number, doc: DemoDoc) {
