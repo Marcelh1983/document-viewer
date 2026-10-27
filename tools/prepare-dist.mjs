@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 // Prepares a package.json in dist/packages/<name> for publishing:
+// - Starts from the package.json the builder wrote (ng-packagr adds exports,
+//   sideEffects, typings, ...); falls back to the source one (tsup writes none)
 // - Rewrites dist-prefixed paths to root-relative paths
 // - Resolves workspace:* dependencies to their actual versions
 // - Removes the scripts field
@@ -16,7 +18,15 @@ if (!pkgName) {
   process.exit(1);
 }
 
-const pkg = JSON.parse(readFileSync(join(root, 'packages', pkgName, 'package.json'), 'utf8'));
+const builtPkgPath = join(root, 'dist', 'packages', pkgName, 'package.json');
+const pkg = JSON.parse(
+  readFileSync(
+    existsSync(builtPkgPath)
+      ? builtPkgPath
+      : join(root, 'packages', pkgName, 'package.json'),
+    'utf8',
+  ),
+);
 
 // Rewrite top-level path fields
 for (const field of ['main', 'module', 'types', 'typings']) {

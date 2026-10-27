@@ -46,20 +46,19 @@ const reloadIFrame = (iframe: HTMLIFrameElement) => {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const handleFileUpload = (fileInput: any) => {
-  return new Promise<string>((resolve, reject) => {
-    if (fileInput.target.files && fileInput.target.files[0]) {
-      const reader = new FileReader();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      reader.onload = (e: any) => {
-        resolve(e.target.result);
-      };
-      reader.readAsDataURL(fileInput.target.files[0]);
-    } else {
-      reject('no files selected');
-    }
-  });
+/**
+ * Turns the file picked in an `<input type="file">` into an object url the
+ * mammoth and pdf viewers can load. Accepts the DOM change event as well as
+ * React's ChangeEvent. Call `URL.revokeObjectURL(url)` once the document is no
+ * longer shown.
+ */
+export const handleFileUpload = (event: {
+  target: EventTarget | null;
+}): Promise<string> => {
+  const file = (event.target as HTMLInputElement | null)?.files?.[0];
+  return file
+    ? Promise.resolve(URL.createObjectURL(file))
+    : Promise.reject('no files selected');
 };
 
 export const getbaseUrl = (): string => {

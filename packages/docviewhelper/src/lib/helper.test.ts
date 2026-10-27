@@ -4,6 +4,7 @@ import {
   getViewerDetails,
   getViewerRecoveryPlan,
   googleCheckSubscription,
+  handleFileUpload,
   isLocalFile,
   resolveViewerDetails,
   uploadToCloud,
@@ -97,6 +98,23 @@ describe('helper', () => {
     await expect(getDocxToHtml('https://example.com/a.docx')).rejects.toThrow(
       'mammoth.browser.min.js'
     );
+  });
+
+  describe('handleFileUpload', () => {
+    it('returns an object url for the selected file', async () => {
+      const file = new File(['%PDF'], 'a.pdf', { type: 'application/pdf' });
+      const url = await handleFileUpload({
+        target: { files: [file] } as unknown as EventTarget,
+      });
+      expect(url.startsWith('blob:')).toBe(true);
+      URL.revokeObjectURL(url);
+    });
+
+    it('rejects when no file was selected', async () => {
+      await expect(
+        handleFileUpload({ target: { files: [] } as unknown as EventTarget })
+      ).rejects.toBe('no files selected');
+    });
   });
 
   describe('uploadToCloud', () => {

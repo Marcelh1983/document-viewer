@@ -54,6 +54,36 @@ describe('DocumentViewer', () => {
     expect(container.textContent).toContain('Loading document...');
   });
 
+  it('starts the phase events with loading when a url is given', () => {
+    const phases: DocumentViewerEvent['phase'][] = [];
+    act(() =>
+      root.render(
+        <DocumentViewer
+          viewer="google"
+          url="https://example.com/file.docx"
+          onPhaseChange={(event) => phases.push(event.phase)}
+        />,
+      ),
+    );
+
+    expect(phases).toEqual(['loading']);
+  });
+
+  it('reports idle when no url is given', () => {
+    const phases: DocumentViewerEvent['phase'][] = [];
+    act(() =>
+      root.render(
+        <DocumentViewer
+          viewer="google"
+          url=""
+          onPhaseChange={(event) => phases.push(event.phase)}
+        />,
+      ),
+    );
+
+    expect(phases).toEqual(['idle']);
+  });
+
   it('wraps the url in the google viewer iframe', () => {
     act(() =>
       root.render(

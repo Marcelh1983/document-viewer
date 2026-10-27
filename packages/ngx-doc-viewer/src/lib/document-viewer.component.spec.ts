@@ -74,8 +74,10 @@ describe('NgxDocViewerComponent', () => {
     fixture.componentRef.setInput('disableContent', 'popout');
     fixture.detectChanges();
 
-    const overlay: HTMLElement = fixture.nativeElement.querySelector('.overlay');
-    expect(overlay.classList).toContain('overlay-popout-office');
+    const overlay: HTMLElement = fixture.nativeElement.querySelector(
+      '.ngx-doc-viewer-overlay',
+    );
+    expect(overlay.classList).toContain('ngx-doc-viewer-overlay-popout-office');
     expect(fixture.nativeElement.querySelector('iframe')).not.toBeNull();
   });
 

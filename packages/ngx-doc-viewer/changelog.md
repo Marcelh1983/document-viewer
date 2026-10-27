@@ -4,9 +4,14 @@ Breaking changes:
 * inputs, outputs and internal state now use signals (`input()`, `output()`, `signal()`); template bindings are unchanged, code that sets or reads component properties directly must use `setInput()` / call the signal
 * the iframe no longer has an `id` (`iframe` / `iframe-doc-viewer`); use the `ngx-doc-viewer-iframe` class instead
 * `loaded` is emitted for every viewer (iframe, pdf and mammoth), once per load
+* `handleFileUpload` returns an object url (`blob:`) instead of a base64 data url; revoke it with `URL.revokeObjectURL` when it is no longer shown
 
 Changes:
+* the published package.json keeps the fields ng-packagr generates: `sideEffects: false` (better tree-shaking), the `./package.json` export (tools such as `ng update` can read the version again) and `typings`
+* the `disableContent` overlay uses the `ngx-doc-viewer-overlay` class
 * built with Angular 22; the component follows the app's default change detection: `OnPush` on Angular 22+, `Eager` on Angular 21 and older
+* works in zoneless apps; the demo app now runs without zone.js
+* documented how to load mammoth 1.13.0, which fails when loaded with a script tag before zone.js
 * uses built-in control flow (`@if` / `@for`) and remounts the iframe/pdf object per load instead of forcing change detection
 * the mammoth viewer now shows a timeout error after 15 seconds, like the other viewers
 * the google reload probe starts after the iframe has rendered and is cancelled on destroy or a new load

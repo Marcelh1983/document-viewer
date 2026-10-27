@@ -11,35 +11,11 @@ export interface ViewerRecoveryPlan {
   modes: ViewerRecoveryMode[];
 }
 
-interface Props {
-  loaded?: () => void;
-  url: string;
-  queryParams?: string;
-  viewerUrl?: string;
-  googleCheckInterval?: number;
-  disableContent?: DisableContent;
-  googleCheckContentLoaded?: boolean;
-  viewer?: ViewerType;
-}
-
 export interface IFrameReloader {
   subscribe: (
     iframe: HTMLIFrameElement,
     interval?: number,
     maxChecks?: number
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ) => any;
+  ) => ReturnType<typeof setInterval> | undefined;
   unsubscribe: () => void;
 }
-
-export const defaultProps: Props = {
-   
-  loaded: () => {},
-  disableContent: 'none',
-  googleCheckContentLoaded: true,
-  googleCheckInterval: 3000,
-  queryParams: '',
-  url: '',
-  viewer: 'google',
-  viewerUrl: '',
-};

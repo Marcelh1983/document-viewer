@@ -37,8 +37,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
+  "sideEffects": false,
   "bugs": {
     "url": "https://github.com/Marcelh1983/document-viewer/issues"
   },

@@ -196,13 +196,15 @@ NOTE: PDF's are shown in the embed tag. Browser support is not guaranteed. If yo
 
 .docx
 
-To use mammoth make sure mammoth.browser.min.js is loaded. Can be added in the index.html
+The mammoth viewer needs mammoth's browser build (`mammoth.browser.min.js`) loaded as a global, for example in `index.html`:
+
 ```html
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.16/mammoth.browser.min.js"
-    integrity="sha512-hXFbhlByvaKQUnA8YLVmee6gVnmmL5RMx2GVnxuTBxMrVegwIN/1d2eZ3ICNzw0MViUotNtZEdgPW+Dq+kv4oQ=="
-    crossorigin="anonymous"
-  ></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.13.0/mammoth.browser.min.js"
+  integrity="sha512-5hAL8cCOeSztnaZ+3xjLAflXeSwJpGrdrH6McLq2Dtl0vfvCQw+jO9q652eMASTNAU8anRvrXnlW9QqzlfN2HA=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
 ```
 
 ## My other packages

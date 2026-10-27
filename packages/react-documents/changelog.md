@@ -3,8 +3,11 @@ Breaking changes:
 * the iframe no longer has `id="iframe"`; use the `react-documents-iframe` class instead
 * `loaded` is called for every viewer (iframe, pdf and mammoth), once per load
 * the `viewerType` type is deprecated in favor of `ViewerType`
+* `handleFileUpload` returns an object url (`blob:`) instead of a base64 data url; revoke it with `URL.revokeObjectURL` when it is no longer shown
 
 Changes:
+* phase events no longer start with an `idle` event before `loading` when a url is given, matching ngx-doc-viewer
+* the published package.json declares `sideEffects: false` and exports `./package.json`
 * added the `disableContent` prop (`none`, `all`, `popout`, `popout-hide`), matching ngx-doc-viewer
 * the props are exported as the `DocumentViewerProps` type
 * the google reload probe now starts after the new iframe has mounted and stops when the component unmounts

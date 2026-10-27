@@ -25,6 +25,8 @@ ngx-doc-viewer works with Angular 17.3 and newer (use ngx-doc-viewer 21 for Angu
 
 Projected templates (`loadingContent`, `errorContent`, `errorActions`, `officeReloadContent`) keep updating with your component's state under both strategies.
 
+The component works with and without zone.js, so it also runs in zoneless apps (`provideZonelessChangeDetection()`). For the mammoth viewer, see the note on zone.js in the [mammoth](#mammoth) section.
+
 ### Usage
 
 #### 1. Import `NgxDocViewerModule`
@@ -150,7 +152,7 @@ The rendered elements have class names you can target from your own CSS:
 
 - `ngx-doc-viewer-iframe`: the iframe used by the google, office and url viewers
 - `ngx-doc-viewer-object`: the object used by the pdf viewer
-- `overlay`: the `disableContent` overlay
+- `ngx-doc-viewer-overlay`: the `disableContent` overlay
 
 ### Recent behavior improvements
 
@@ -225,19 +227,37 @@ NOTE: PDF's are shown in the embed tag. Browser support is not guaranteed. If yo
 
 .docx
 
-To use mammoth, also add:
+The mammoth viewer needs mammoth's browser build (`mammoth.browser.min.js`) loaded as a global. Pick the setup that matches your app.
+
+#### Zoneless apps: a script tag
+
+New apps on Angular 21 and newer are zoneless (no zone.js). Add mammoth to `index.html`:
+
+```html
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.13.0/mammoth.browser.min.js"
+  integrity="sha512-5hAL8cCOeSztnaZ+3xjLAflXeSwJpGrdrH6McLq2Dtl0vfvCQw+jO9q652eMASTNAU8anRvrXnlW9QqzlfN2HA=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+```
+
+#### Apps with zone.js: angular.json
+
+A script tag in `index.html` runs before zone.js, and mammoth 1.13.0 fails when zone.js loads after it (`Promise.prototype.then called on incompatible receiver`). Load mammoth through angular.json instead; Angular runs these scripts after zone.js:
 
 ```sh
 npm install mammoth --save
 ```
 
-and make sure mammoth.browser.min.js is loaded. For the angular/cli you would add the following in angular.json:
-
 ```json
-    "scripts": [
-        "node_modules/mammoth/mammoth.browser.min.js"
-    ]
+"scripts": ["node_modules/mammoth/mammoth.browser.min.js"]
 ```
+
+This adds about 400 kB (100 kB gzipped) to the initial bundle. Alternatives:
+
+- keep the script tag, but use mammoth 1.12.3 or older;
+- or make your app zoneless: add `provideZonelessChangeDetection()` to the app providers and remove `zone.js` from `polyfills` in angular.json. ngx-doc-viewer works without zone.js; the [demo app](https://angular-doc-viewer.web.app/) runs zoneless.
 
 ## My other packages
 

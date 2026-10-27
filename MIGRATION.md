@@ -23,7 +23,7 @@ Inputs, outputs and state are now signals. If you access the component instance 
 
 ### Iframe id replaced by a class
 
-The iframe no longer has an `id` (`iframe` / `iframe-doc-viewer`), so several viewers on one page no longer produce duplicate ids. Target `.ngx-doc-viewer-iframe` instead.
+The iframe no longer has an `id` (`iframe` / `iframe-doc-viewer`), so several viewers on one page no longer produce duplicate ids. Target `.ngx-doc-viewer-iframe` instead. The `disableContent` overlay uses the `ngx-doc-viewer-overlay` class.
 
 ### `loaded` fires for every viewer
 
@@ -71,6 +71,33 @@ npm install react-documents@^3.0.0
 # or
 pnpm add react-documents@^3.0.0
 ```
+
+---
+
+## docviewhelper v0.1 → v0.2
+
+These changes also apply to ngx-doc-viewer v22 and react-documents v3, which re-export docviewhelper.
+
+### `handleFileUpload` returns an object url
+
+It used to read the file into a base64 data url. It now returns an object url (`blob:...`), which loads large files much faster. Object urls only live as long as the page, so don't store them, and release them when the document is no longer shown:
+
+```ts
+const url = await handleFileUpload(event);
+// later, when showing another document:
+URL.revokeObjectURL(url);
+```
+
+It now accepts the DOM change `Event` (or React's `ChangeEvent`) instead of `any`.
+
+### Removed `defaultProps`
+
+The unused `defaultProps` export has been removed. ngx-doc-viewer and react-documents define their own defaults.
+
+### New
+
+- `resolveViewerDetails`, `getDisableContentOverlay`, `ViewerRecoveryController.beginInlineLoad`, `LOAD_TIMEOUT_MS`
+- `DisableContent` and `DisableContentOverlay` types
 
 ---
 
@@ -136,7 +163,7 @@ These changes only affect contributors working in this monorepo:
 | webpack (demo-react) | Vite 8 |
 | Rollup via @nx/rollup | tsup (docviewhelper, react-documents) |
 | @nx/angular:package | ng-packagr CLI directly |
-| zone.js 0.13 | zone.js 0.16 |
+| zone.js 0.13 | zoneless demo app (zone.js 0.16 only for the library tests) |
 | Jest 29 | Jest 30 |
 | @angular-devkit/build-angular (webpack) | @angular/build (esbuild) |
 

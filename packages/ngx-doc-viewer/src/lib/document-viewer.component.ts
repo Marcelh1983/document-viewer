@@ -204,23 +204,23 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         text-decoration: none;
         font: inherit;
       }
-      .overlay {
+      .ngx-doc-viewer-overlay {
         position: absolute;
         z-index: 1000;
       }
-      .overlay-popout-google {
+      .ngx-doc-viewer-overlay-popout-google {
         width: 40px;
         height: 40px;
         right: 26px;
         top: 11.5px;
       }
-      .overlay-popout-office {
+      .ngx-doc-viewer-overlay-popout-office {
         width: 100px;
         height: 20px;
         right: 0;
         bottom: 0;
       }
-      .overlay-full {
+      .ngx-doc-viewer-overlay-full {
         width: 100%;
         height: 100%;
         right: 0;
@@ -321,7 +321,9 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy {
   );
   readonly overlayClass = computed(() => {
     const overlay = getDisableContentOverlay(this.viewer(), this.disableContent());
-    return overlay ? `overlay overlay-${overlay}` : undefined;
+    return overlay
+      ? `ngx-doc-viewer-overlay ngx-doc-viewer-overlay-${overlay}`
+      : undefined;
   });
   readonly templateContext = computed<ViewerTemplateContext>(() => {
     const state: ViewerStateContext = {

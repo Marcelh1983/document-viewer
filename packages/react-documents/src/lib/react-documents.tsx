@@ -364,7 +364,9 @@ export const DocumentViewer = (inputProps: DocumentViewerProps) => {
   );
 
   useEffect(() => {
-    if (lastEmittedPhase.current === state.phase) {
+    // The initial state is a placeholder until the first load starts; emitting
+    // it would report an `idle` phase before `loading` even when a url is set.
+    if (!state.iframeKey || lastEmittedPhase.current === state.phase) {
       return;
     }
     lastEmittedPhase.current = state.phase;
@@ -387,7 +389,7 @@ export const DocumentViewer = (inputProps: DocumentViewerProps) => {
     if (state.phase === 'ready') {
       current.loaded?.();
     }
-  }, [state.errorMessage, state.sourceUrl, state.phase, retryLoad]);
+  }, [state.iframeKey, state.errorMessage, state.sourceUrl, state.phase, retryLoad]);
 
   return (
     <div
