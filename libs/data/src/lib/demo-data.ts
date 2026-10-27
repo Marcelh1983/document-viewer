@@ -26,7 +26,7 @@ export const viewers: DemoViewer[] = [
       {
         type: 'doc',
         label: 'DOC',
-        url: 'https://go.microsoft.com/fwlink/?LinkID=521962',
+        url: 'https://filesamples.com/samples/document/doc/sample2.doc',
       },
       {
         type: 'pdf',

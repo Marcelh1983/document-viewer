@@ -8,7 +8,7 @@ const root = resolve(import.meta.dirname, 'src');
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   root,
-  publicDir: resolve(import.meta.dirname, 'src/assets'),
+  publicDir: resolve(import.meta.dirname, 'public'),
   resolve: {
     alias: {
       '@document-viewer/data': resolve(import.meta.dirname, '../../libs/data/src/index.ts'),
