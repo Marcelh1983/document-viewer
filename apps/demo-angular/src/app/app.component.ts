@@ -1,35 +1,73 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { NgxDocViewerModule } from 'ngx-doc-viewer';
-import { handleFileUpload, ViewerType } from 'ngx-doc-viewer';
+import {
+  DisableContent,
+  NgxDocViewerComponent,
+  ViewerRenderPhase,
+  ViewerStateContext,
+  ViewerType,
+  handleFileUpload,
+} from 'ngx-doc-viewer';
 import {
   DemoDoc,
+  DemoEvent,
   DemoViewer,
+  addDemoEvent,
+  disableContentModes,
   getDemoDoc,
   getDemoViewer,
+  supportsDisableContent,
   viewers,
 } from '@document-viewer/data';
+
+const phaseBadges: Record<ViewerRenderPhase, string> = {
+  idle: 'bg-slate-100 text-slate-500',
+  loading: 'bg-amber-100 text-amber-700',
+  ready: 'bg-emerald-100 text-emerald-700',
+  error: 'bg-red-100 text-red-700',
+};
 
 @Component({
   selector: 'document-viewer-root',
   standalone: true,
-  imports: [NgClass, NgxDocViewerModule],
+  imports: [NgClass, NgxDocViewerComponent],
   templateUrl: 'app.component.html',
-  styles: [],
 })
 export class AppComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   viewers = viewers;
+  disableContentModes = disableContentModes;
   selectedViewer = signal(getDemoViewer());
   selectedDoc = signal(this.selectedViewer().docs[0]);
   customUrl = signal('');
   selectedUrl = computed(() => this.customUrl() || this.selectedDoc().url);
+  showDisableContent = computed(() =>
+    supportsDisableContent(this.selectedViewer().name),
+  );
+  disableContent = signal<DisableContent>('none');
+  viewerDisableContent = computed(() =>
+    this.showDisableContent() ? this.disableContent() : 'none',
+  );
+  phase = signal<ViewerRenderPhase>('idle');
+  phaseBadge = computed(() => phaseBadges[this.phase()]);
+  events = signal<DemoEvent[]>([]);
 
   constructor() {
-    this.route.paramMap.subscribe((params) => {
+    // Uploaded files are shown through object urls; release the previous one.
+    effect((onCleanup) => {
+      const url = this.customUrl();
+      onCleanup(() => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    });
+
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const previewer = params.get('previewer') ?? undefined;
       const doctype = params.get('doctype') ?? undefined;
       const viewer = getDemoViewer(previewer);
@@ -60,17 +98,21 @@ export class AppComponent {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async handleFiles(fileInput: any) {
-    this.customUrl.set(await handleFileUpload(fileInput));
+  async handleFiles(event: Event) {
+    this.customUrl.set(await handleFileUpload(event));
   }
 
   loadCustomUrl(url: string) {
     this.customUrl.set(url);
   }
 
-  trackByDocType(_index: number, doc: DemoDoc) {
-    return doc.type;
+  onPhaseChange(state: ViewerStateContext) {
+    this.phase.set(state.phase);
+    this.log('phaseChange', `${state.viewer}: ${state.phase}`);
+  }
+
+  log(name: string, detail = '') {
+    this.events.update((events) => addDemoEvent(events, name, detail));
   }
 
   private navigate(viewer: DemoViewer['name'], docType: string, replaceUrl = false) {

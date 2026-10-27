@@ -1,20 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import {
   DemoDoc,
+  DemoEvent,
+  addDemoEvent,
+  disableContentModes,
   getDemoDoc,
   getDemoViewer,
+  supportsDisableContent,
   viewers,
 } from '@document-viewer/data';
-import { DocumentViewer, handleFileUpload, ViewerType } from 'react-documents';
+import {
+  DisableContent,
+  DocumentViewer,
+  DocumentViewerEvent,
+  ViewerRenderPhase,
+  ViewerType,
+  handleFileUpload,
+} from 'react-documents';
+
+const phaseBadges: Record<ViewerRenderPhase, string> = {
+  idle: 'bg-slate-100 text-slate-500',
+  loading: 'bg-amber-100 text-amber-700',
+  ready: 'bg-emerald-100 text-emerald-700',
+  error: 'bg-red-100 text-red-700',
+};
 import { useNavigate, useParams } from 'react-router-dom';
 
 export function App() {
   const navigate = useNavigate();
   const params = useParams();
-  const [selectedViewer, setSelectedViewer] = useState(getDemoViewer());
-  const [selectedDoc, setSelectedDoc] = useState(getDemoDoc());
+  const [selectedViewer, setSelectedViewer] = useState(() =>
+    getDemoViewer(params.previewer)
+  );
+  const [selectedDoc, setSelectedDoc] = useState(() =>
+    getDemoDoc(params.previewer, params.doctype)
+  );
   const [customUrlDraft, setCustomUrlDraft] = useState('');
   const [customUrl, setCustomUrl] = useState('');
+  const [disableContent, setDisableContent] = useState<DisableContent>('none');
+  const [phase, setPhase] = useState<ViewerRenderPhase>('idle');
+  const [events, setEvents] = useState<DemoEvent[]>([]);
+  const showDisableContent = supportsDisableContent(selectedViewer.name);
 
   useEffect(() => {
     const viewer = getDemoViewer(params.previewer);
@@ -44,9 +70,26 @@ export function App() {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleFiles = async (fileInput: any) => {
-    setCustomUrl(await handleFileUpload(fileInput));
+  // Uploaded files are shown through object urls; release the previous one.
+  useEffect(
+    () => () => {
+      if (customUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(customUrl);
+      }
+    },
+    [customUrl]
+  );
+
+  const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    setCustomUrl(await handleFileUpload(event));
+  };
+
+  const log = (name: string, detail = '') =>
+    setEvents((current) => addDemoEvent(current, name, detail));
+
+  const onPhaseChange = (event: DocumentViewerEvent) => {
+    setPhase(event.phase);
+    log('phaseChange', `${event.viewer}: ${event.phase}`);
   };
 
   return (
@@ -71,7 +114,7 @@ export function App() {
 
           {/* Viewer selector */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">Viewer</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider w-16 shrink-0">Viewer</span>
             {viewers.map((viewer) => (
               <button
                 key={viewer.name}
@@ -90,7 +133,7 @@ export function App() {
 
           {/* Document selector */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">Format</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider w-16 shrink-0">Format</span>
             {selectedViewer.docs.map((doc) => (
               <button
                 key={doc.type}
@@ -140,21 +183,72 @@ export function App() {
             )}
           </div>
 
+          {/* disableContent selector */}
+          {showDisableContent && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider w-16 shrink-0">Content</span>
+              {disableContentModes.map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setDisableContent(mode)}
+                  className={[
+                    'px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm focus:outline-none cursor-pointer',
+                    disableContent === mode
+                      ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                      : 'bg-white border border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600',
+                  ].join(' ')}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          )}
+
         </div>
       </div>
 
       {/* Document Viewer */}
-      <div className="flex-1 p-4 min-h-0">
-        <div className="h-full rounded-xl overflow-hidden shadow-lg bg-white ring-1 ring-slate-200">
+      <div className="flex-1 p-4 min-h-0 flex gap-4">
+        <div className="flex-1 min-w-0 rounded-xl overflow-hidden shadow-lg bg-white ring-1 ring-slate-200">
           <DocumentViewer
             style={{ width: '100%', height: '100%', display: 'block' }}
             queryParams="hl=Nl"
             url={customUrl || selectedDoc.url}
             viewerUrl={selectedViewer.viewerUrl}
             viewer={selectedViewer.name}
+            disableContent={showDisableContent ? disableContent : 'none'}
+            secondaryActionText="Open source"
             overrideLocalhost="https://angular-doc-viewer.firebaseapp.com/"
+            onPhaseChange={onPhaseChange}
+            loaded={() => log('loaded')}
+            onError={(event) => log('error', event.errorText)}
           />
         </div>
+
+        {/* Lifecycle events */}
+        <aside className="hidden lg:flex w-72 shrink-0 flex-col rounded-xl overflow-hidden shadow-lg bg-white ring-1 ring-slate-200">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Events</span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${phaseBadges[phase]}`}>{phase}</span>
+          </div>
+          <ol className="flex-1 overflow-auto divide-y divide-slate-100 text-sm">
+            {events.length === 0 ? (
+              <li className="px-4 py-3 text-slate-400">No events yet</li>
+            ) : (
+              events.map((event) => (
+                <li key={event.id} className="px-4 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-slate-700">{event.name}</span>
+                    <span className="text-xs text-slate-400">{event.time}</span>
+                  </div>
+                  {event.detail && (
+                    <div className="text-xs text-slate-500 break-all">{event.detail}</div>
+                  )}
+                </li>
+              ))
+            )}
+          </ol>
+        </aside>
       </div>
 
     </div>

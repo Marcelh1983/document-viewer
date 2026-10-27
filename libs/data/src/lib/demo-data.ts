@@ -1,4 +1,4 @@
-import { ViewerType, getbaseUrl } from 'docviewhelper';
+import { DisableContent, ViewerType, getbaseUrl } from 'docviewhelper';
 
 export interface DemoDoc {
   type: string;
@@ -95,7 +95,6 @@ export const viewers: DemoViewer[] = [
       {
         type: 'published',
         label: 'PUBLISHED',
-         
         url: `https://docs.google.com/document/d/e/2PACX-1vRs3gemrszDinuGJCi_wO2m5XVP1q2SlRhxM8PAUYc3wu9LFsvteny7l6Rkp695-ruhfn3gWXV03yXC/pub?embedded=true`,
       },
     ],
@@ -113,3 +112,39 @@ export const getDemoDoc = (viewerName?: string, docType?: string) => {
   const viewer = getDemoViewer(viewerName);
   return viewer.docs.find((doc) => doc.type === docType) ?? viewer.docs[0];
 };
+
+/** disableContent only applies to the iframe viewers that have a popout button. */
+export const disableContentModes: DisableContent[] = [
+  'none',
+  'all',
+  'popout',
+  'popout-hide',
+];
+
+export const supportsDisableContent = (viewer: ViewerType) =>
+  viewer === 'google' || viewer === 'office';
+
+export interface DemoEvent {
+  id: number;
+  time: string;
+  name: string;
+  detail: string;
+}
+
+const maxDemoEvents = 8;
+let demoEventId = 0;
+
+/** Prepends an event to the log shown next to the viewer, newest first. */
+export const addDemoEvent = (
+  events: DemoEvent[],
+  name: string,
+  detail = '',
+): DemoEvent[] => [
+  {
+    id: ++demoEventId,
+    time: new Date().toLocaleTimeString(),
+    name,
+    detail,
+  },
+  ...events.slice(0, maxDemoEvents - 1),
+];

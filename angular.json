@@ -16,7 +16,6 @@
             "outputPath": "dist/apps/demo-angular",
             "index": "apps/demo-angular/src/index.html",
             "browser": "apps/demo-angular/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "apps/demo-angular/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -26,7 +25,7 @@
                 "output": "assets"
               },
               {
-                "glob": "favicon.ico",
+                "glob": "favicon.{ico,svg}",
                 "input": "apps/demo-angular/src",
                 "output": ""
               }
@@ -49,12 +48,6 @@
                   "type": "anyComponentStyle",
                   "maximumWarning": "2kb",
                   "maximumError": "4kb"
-                }
-              ],
-              "fileReplacements": [
-                {
-                  "replace": "apps/demo-angular/src/environments/environment.ts",
-                  "with": "apps/demo-angular/src/environments/environment.prod.ts"
                 }
               ],
               "outputHashing": "all"
