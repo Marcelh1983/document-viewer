@@ -9,6 +9,7 @@ import {
 import {
   DisableContent,
   DisableContentOverlay,
+  GOOGLE_VIEWER_SANDBOX,
   IFrameReloader,
   ViewerRecoveryConfig,
   ViewerRecoveryController,
@@ -142,7 +143,11 @@ interface State {
 }
 
 const toErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : 'Unable to load document.';
+  typeof error === 'string'
+    ? error
+    : error instanceof Error
+      ? error.message
+      : 'Unable to load document.';
 
 export const DocumentViewer = (inputProps: DocumentViewerProps) => {
   const props: ResolvedProps = { ...defaultProps, ...inputProps };
@@ -546,6 +551,7 @@ export const DocumentViewer = (inputProps: DocumentViewerProps) => {
             ref={iframeRef}
             onLoad={iframeLoaded}
             title="Document viewer"
+            sandbox={viewer === 'google' ? GOOGLE_VIEWER_SANDBOX : undefined}
             frameBorder="0"
             allow="clipboard-read; clipboard-write"
             src={state.url}

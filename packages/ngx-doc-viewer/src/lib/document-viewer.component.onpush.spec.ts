@@ -55,9 +55,9 @@ describe('NgxDocViewerComponent (OnPush)', () => {
     await settle();
     fixture.detectChanges();
 
-    const page = fixture.nativeElement.querySelector('.inline-document-page');
+    const page = fixture.nativeElement.querySelector('.ngx-doc-viewer-inline-document-page');
     expect(page.innerHTML).toBe('<p>converted</p>');
-    expect(fixture.nativeElement.querySelector('.loading-overlay')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.ngx-doc-viewer-loading-overlay')).toBeNull();
   });
 
   it('shows the timeout error raised by a timer', () => {
@@ -71,7 +71,7 @@ describe('NgxDocViewerComponent (OnPush)', () => {
     fixture.detectChanges();
 
     expect(
-      fixture.nativeElement.querySelector('.error-overlay').textContent,
+      fixture.nativeElement.querySelector('.ngx-doc-viewer-error-overlay').textContent,
     ).toContain('The pdf viewer did not finish loading in time.');
   });
 
@@ -85,14 +85,14 @@ describe('NgxDocViewerComponent (OnPush)', () => {
     fixture.detectChanges();
     await settle();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.error-overlay')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.ngx-doc-viewer-error-overlay')).not.toBeNull();
 
     convertToHtml.mockReturnValue(new Promise(() => undefined));
     state?.retry();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.loading-overlay')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.error-overlay')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.ngx-doc-viewer-loading-overlay')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.ngx-doc-viewer-error-overlay')).toBeNull();
   });
 
   it('keeps projected error templates in sync with the host', async () => {
@@ -121,10 +121,14 @@ describe('NgxDocViewerComponent (OnPush)', () => {
 
     const customError = () =>
       fixture.nativeElement.querySelector('.custom-error').textContent;
-    expect(customError()).toBe('first: broken document');
+    expect(customError()).toBe(
+      'first: This file could not be read as a .docx document.',
+    );
 
     fixture.componentInstance.hostLabel = 'second';
     fixture.detectChanges();
-    expect(customError()).toBe('second: broken document');
+    expect(customError()).toBe(
+      'second: This file could not be read as a .docx document.',
+    );
   });
 });

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NgxDocViewerComponent, ViewerStateContext } from './document-viewer.component';
+import { GOOGLE_VIEWER_SANDBOX } from 'docviewhelper';
 
 describe('NgxDocViewerComponent', () => {
   let fixture: ComponentFixture<NgxDocViewerComponent>;
@@ -30,7 +31,7 @@ describe('NgxDocViewerComponent', () => {
     expect(object.getAttribute('data')).toBe('https://example.com/file.pdf');
     expect(phases).toEqual(['loading']);
     expect(
-      fixture.nativeElement.querySelector('.loading-overlay').textContent,
+      fixture.nativeElement.querySelector('.ngx-doc-viewer-loading-overlay').textContent,
     ).toContain('Loading document...');
   });
 
@@ -122,5 +123,31 @@ describe('NgxDocViewerComponent', () => {
       fixture.destroy();
       jest.useRealTimers();
     }
+  });
+
+  it('sandboxes only the google viewer iframe, matching GOOGLE_VIEWER_SANDBOX', () => {
+    fixture.componentRef.setInput('viewer', 'google');
+    fixture.componentRef.setInput('url', 'https://example.com/file.docx');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('iframe').getAttribute('sandbox'),
+    ).toBe(GOOGLE_VIEWER_SANDBOX);
+
+    fixture.componentRef.setInput('viewer', 'office');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('iframe').hasAttribute('sandbox'),
+    ).toBe(false);
+  });
+
+  it('uses prefixed class names that app css (Tailwind, Bootstrap) cannot hit', () => {
+    fixture.componentRef.setInput('viewer', 'pdf');
+    fixture.componentRef.setInput('url', 'https://example.com/file.pdf');
+    fixture.detectChanges();
+
+    const classes = [...fixture.nativeElement.querySelectorAll('[class]')]
+      .flatMap((el: Element) => [...el.classList]);
+    expect(classes.length).toBeGreaterThan(0);
+    expect(classes.filter((c) => !c.startsWith('ngx-doc-viewer-'))).toEqual([]);
   });
 });

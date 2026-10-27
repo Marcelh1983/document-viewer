@@ -94,6 +94,39 @@ describe('helper', () => {
     }
   });
 
+  describe('getDocxToHtml', () => {
+    const globals = globalThis as unknown as Record<string, unknown>;
+    const originalXhr = globals['XMLHttpRequest'];
+    afterEach(() => {
+      globals['XMLHttpRequest'] = originalXhr;
+      delete globals['mammoth'];
+    });
+
+    it('reports a file that is not a docx in plain words', async () => {
+      class HtmlXhr {
+        status = 0;
+        response: ArrayBuffer | null = null;
+        responseType = '';
+        onload?: () => void;
+        open() {}
+        send() {
+          this.status = 200;
+          this.response = new TextEncoder().encode('<!doctype html>').buffer;
+          this.onload?.();
+        }
+      }
+      globals['XMLHttpRequest'] = HtmlXhr;
+      globals['mammoth'] = {
+        convertToHtml: () =>
+          Promise.reject(new Error("Can't find end of central directory")),
+      };
+
+      await expect(getDocxToHtml('https://example.com/a.docx')).rejects.toThrow(
+        'This file could not be read as a .docx document.'
+      );
+    });
+  });
+
   it('reports a missing mammoth global as an error', async () => {
     await expect(getDocxToHtml('https://example.com/a.docx')).rejects.toThrow(
       'mammoth.browser.min.js'

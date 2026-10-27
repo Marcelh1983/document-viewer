@@ -139,6 +139,8 @@ The rendered elements have class names you can target from your own CSS:
 
 Only files under 25 MB can be previewed with the Google Drive viewer.
 
+The google viewer runs in a sandboxed iframe without downloads: Google sometimes answers with an empty response, which browsers would otherwise save as a `gview` file. The component reloads the viewer when that happens (see `googleCheckContentLoaded`) and shows an error when it keeps failing.
+
 Google Drive viewer helps you preview over 15 different file types, listed below:
 
 - Text files (.TXT)

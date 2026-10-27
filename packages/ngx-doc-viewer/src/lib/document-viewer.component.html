@@ -1,6 +1,6 @@
-<div class="container">
+<div class="ngx-doc-viewer-container">
   @if (renderPhase() === 'loading') {
-    <div class="loading-overlay">
+    <div class="ngx-doc-viewer-loading-overlay">
       @if (loadingTemplate(); as template) {
         <ng-container *ngTemplateOutlet="template; context: templateContext()" />
       } @else {
@@ -9,26 +9,26 @@
     </div>
   }
   @if (renderPhase() === 'error') {
-    <div class="error-overlay">
+    <div class="ngx-doc-viewer-error-overlay">
       @if (errorTemplate(); as template) {
         <ng-container *ngTemplateOutlet="template; context: templateContext()" />
       } @else {
         <div>
           <div>{{ displayedErrorText() }}</div>
-          <div class="error-viewer">Viewer: {{ viewer() }}</div>
+          <div class="ngx-doc-viewer-error-viewer">Viewer: {{ viewer() }}</div>
           @if (sourceUrl()) {
-            <div class="error-url">{{ sourceUrl() }}</div>
+            <div class="ngx-doc-viewer-error-url">{{ sourceUrl() }}</div>
           }
           @if (errorActionsTemplate(); as template) {
             <ng-container *ngTemplateOutlet="template; context: templateContext()" />
           } @else {
-            <div class="error-actions">
-              <button type="button" class="retry-btn" (click)="retryLoad()">
+            <div class="ngx-doc-viewer-error-actions">
+              <button type="button" class="ngx-doc-viewer-retry-btn" (click)="retryLoad()">
                 {{ retryButtonText() }}
               </button>
               @if (secondaryActionText() && sourceUrl()) {
                 <a
-                  class="secondary-action-btn"
+                  class="ngx-doc-viewer-secondary-action-btn"
                   [href]="sourceUrl()"
                   [attr.target]="secondaryActionMode() === 'open' ? '_blank' : null"
                   [attr.rel]="secondaryActionMode() === 'open' ? 'noreferrer' : null"
@@ -46,15 +46,29 @@
 
   @if (externalViewer()) {
     @for (key of loadKeys(); track key) {
-      <iframe
-        #iframe
-        class="ngx-doc-viewer-iframe"
-        title="Document viewer"
-        frameBorder="0"
-        allow="clipboard-read; clipboard-write"
-        [src]="fullUrl()"
-        (load)="iframeLoaded()"
-      ></iframe>
+      @if (viewer() === 'google') {
+        <!-- Angular only allows a static sandbox attribute; keep it equal to GOOGLE_VIEWER_SANDBOX. -->
+        <iframe
+          #iframe
+          class="ngx-doc-viewer-iframe"
+          title="Document viewer"
+          frameBorder="0"
+          allow="clipboard-read; clipboard-write"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
+          [src]="fullUrl()"
+          (load)="iframeLoaded()"
+        ></iframe>
+      } @else {
+        <iframe
+          #iframe
+          class="ngx-doc-viewer-iframe"
+          title="Document viewer"
+          frameBorder="0"
+          allow="clipboard-read; clipboard-write"
+          [src]="fullUrl()"
+          (load)="iframeLoaded()"
+        ></iframe>
+      }
     }
     @if (overlayClass(); as overlay) {
       <div
@@ -79,14 +93,14 @@
       </object>
     }
   } @else {
-    <div class="inline-document-shell">
-      <div class="inline-document-page" [innerHTML]="docHtml()"></div>
+    <div class="ngx-doc-viewer-inline-document-shell">
+      <div class="ngx-doc-viewer-inline-document-page" [innerHTML]="docHtml()"></div>
     </div>
   }
 
   @if (viewer() === 'office' && renderPhase() === 'ready') {
     <button
-      class="office-reload-btn"
+      class="ngx-doc-viewer-office-reload-btn"
       type="button"
       [attr.title]="officeReloadButtonTitle()"
       (click)="retryLoad()"

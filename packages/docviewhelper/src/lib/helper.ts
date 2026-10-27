@@ -94,9 +94,24 @@ export const getDocxToHtml = async (url: string) => {
     );
   }
   const arrayBuffer = await fileToArray(url);
-  const resultObject = await mammoth.convertToHtml({ arrayBuffer });
-  return resultObject.value;
+  try {
+    const resultObject = await mammoth.convertToHtml({ arrayBuffer });
+    return resultObject.value;
+  } catch {
+    // mammoth reports zip internals ("Can't find end of central directory"),
+    // e.g. when the url returns an html page instead of the document.
+    throw new Error('This file could not be read as a .docx document.');
+  }
 };
+
+/**
+ * Sandbox for the google viewer iframe. Google sometimes answers with an empty
+ * 204 `application/binary` response, which browsers turn into a download; a
+ * sandbox without `allow-downloads` blocks those. `allow-same-origin` keeps the
+ * empty page readable, so the reload check can still tell it is not loaded.
+ */
+export const GOOGLE_VIEWER_SANDBOX =
+  'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms';
 
 export const googleCheckSubscription = (): IFrameReloader => {
   let subscription: ReturnType<typeof setInterval> | undefined = undefined;

@@ -1,3 +1,8 @@
+# 22.0.2 (10/27/2026)
+* the google viewer iframe is sandboxed without `allow-downloads`: Google sometimes answers with an empty 204 response, which browsers saved as a `gview` download on every reload attempt
+* internal css classes are prefixed with `ngx-doc-viewer-`, so app css such as Tailwind's or Bootstrap's `.container` no longer shrinks the viewer
+* clearer errors: a failed download shows the reason (for example `status 404`), and a file that is not a .docx shows "This file could not be read as a .docx document." instead of a zip error
+
 # 22.0.1 (10/27/2026)
 * `handleFileUpload` returns an object url (`blob:`) instead of a base64 data url; revoke it with `URL.revokeObjectURL` when it is no longer shown
 * the published package.json keeps the fields ng-packagr generates: `sideEffects: false` (better tree-shaking), the `./package.json` export (tools such as `ng update` can read the version again) and `typings`

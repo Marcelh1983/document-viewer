@@ -1,3 +1,7 @@
+# 3.0.2 (10/27/2026)
+* the google viewer iframe is sandboxed without `allow-downloads`: Google sometimes answers with an empty 204 response, which browsers saved as a `gview` download on every reload attempt
+* clearer errors: a failed download shows the reason (for example `status 404`), and a file that is not a .docx shows "This file could not be read as a .docx document." instead of a zip error
+
 # 3.0.1 (10/27/2026)
 * `handleFileUpload` returns an object url (`blob:`) instead of a base64 data url; revoke it with `URL.revokeObjectURL` when it is no longer shown
 * phase events no longer start with an `idle` event before `loading` when a url is given, matching ngx-doc-viewer

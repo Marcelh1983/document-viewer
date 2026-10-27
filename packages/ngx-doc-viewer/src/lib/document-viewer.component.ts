@@ -62,12 +62,12 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
       :host {
         display: block;
       }
-      .container {
+      .ngx-doc-viewer-container {
         width: 100%;
         height: 100%;
         position: relative;
       }
-      .inline-document-shell {
+      .ngx-doc-viewer-inline-document-shell {
         width: 100%;
         height: 100%;
         overflow: auto;
@@ -75,7 +75,7 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
           linear-gradient(180deg, #eef2f7 0%, #f8fafc 100%);
         padding: 24px;
       }
-      .inline-document-page {
+      .ngx-doc-viewer-inline-document-page {
         max-width: 900px;
         min-height: 100%;
         margin: 0 auto;
@@ -87,59 +87,59 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
           0 6px 18px -10px rgba(15, 23, 42, 0.18);
         padding: 40px 48px;
       }
-      .inline-document-page,
-      .inline-document-page * {
+      .ngx-doc-viewer-inline-document-page,
+      .ngx-doc-viewer-inline-document-page * {
         box-sizing: border-box;
       }
-      .inline-document-page {
+      .ngx-doc-viewer-inline-document-page {
         color: #1e293b;
         font-family:
           Georgia, Cambria, 'Times New Roman', Times, serif;
         font-size: 18px;
         line-height: 1.7;
       }
-      .inline-document-page p,
-      .inline-document-page ul,
-      .inline-document-page ol,
-      .inline-document-page blockquote,
-      .inline-document-page table {
+      .ngx-doc-viewer-inline-document-page p,
+      .ngx-doc-viewer-inline-document-page ul,
+      .ngx-doc-viewer-inline-document-page ol,
+      .ngx-doc-viewer-inline-document-page blockquote,
+      .ngx-doc-viewer-inline-document-page table {
         margin: 0 0 1.1em;
       }
-      .inline-document-page h1,
-      .inline-document-page h2,
-      .inline-document-page h3,
-      .inline-document-page h4,
-      .inline-document-page h5,
-      .inline-document-page h6 {
+      .ngx-doc-viewer-inline-document-page h1,
+      .ngx-doc-viewer-inline-document-page h2,
+      .ngx-doc-viewer-inline-document-page h3,
+      .ngx-doc-viewer-inline-document-page h4,
+      .ngx-doc-viewer-inline-document-page h5,
+      .ngx-doc-viewer-inline-document-page h6 {
         margin: 1.4em 0 0.65em;
         color: #0f172a;
         line-height: 1.25;
       }
-      .inline-document-page h1:first-child,
-      .inline-document-page h2:first-child,
-      .inline-document-page h3:first-child,
-      .inline-document-page p:first-child {
+      .ngx-doc-viewer-inline-document-page h1:first-child,
+      .ngx-doc-viewer-inline-document-page h2:first-child,
+      .ngx-doc-viewer-inline-document-page h3:first-child,
+      .ngx-doc-viewer-inline-document-page p:first-child {
         margin-top: 0;
       }
-      .inline-document-page table {
+      .ngx-doc-viewer-inline-document-page table {
         width: 100%;
         border-collapse: collapse;
       }
-      .inline-document-page td,
-      .inline-document-page th {
+      .ngx-doc-viewer-inline-document-page td,
+      .ngx-doc-viewer-inline-document-page th {
         padding: 6px 10px;
         vertical-align: top;
       }
-      .inline-document-page img {
+      .ngx-doc-viewer-inline-document-page img {
         max-width: 100%;
         height: auto;
       }
-      .inline-document-page hr {
+      .ngx-doc-viewer-inline-document-page hr {
         border: 0;
         border-top: 1px solid #dbe4f0;
         margin: 1.5em 0;
       }
-      .loading-overlay {
+      .ngx-doc-viewer-loading-overlay {
         position: absolute;
         inset: 0;
         z-index: 1001;
@@ -154,7 +154,7 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         text-align: center;
         padding: 16px;
       }
-      .error-overlay {
+      .ngx-doc-viewer-error-overlay {
         position: absolute;
         inset: 0;
         z-index: 1001;
@@ -169,24 +169,24 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         text-align: center;
         padding: 16px;
       }
-      .error-viewer {
+      .ngx-doc-viewer-error-viewer {
         margin-top: 8px;
         color: #475569;
       }
-      .error-url {
+      .ngx-doc-viewer-error-url {
         margin-top: 4px;
         color: #64748b;
         font-size: 12px;
         word-break: break-word;
       }
-      .error-actions {
+      .ngx-doc-viewer-error-actions {
         margin-top: 14px;
         display: flex;
         gap: 8px;
         justify-content: center;
         flex-wrap: wrap;
       }
-      .retry-btn {
+      .ngx-doc-viewer-retry-btn {
         border: 1px solid #fecaca;
         background: #fff;
         color: #991b1b;
@@ -195,7 +195,7 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         font: inherit;
         cursor: pointer;
       }
-      .secondary-action-btn {
+      .ngx-doc-viewer-secondary-action-btn {
         border: 1px solid #cbd5e1;
         background: #fff;
         color: #334155;
@@ -226,7 +226,7 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         right: 0;
         top: 0;
       }
-      .office-reload-btn {
+      .ngx-doc-viewer-office-reload-btn {
         position: absolute;
         top: 8px;
         right: 8px;
@@ -247,7 +247,7 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         transition: opacity 0.15s;
         padding: 0;
       }
-      .office-reload-btn:hover {
+      .ngx-doc-viewer-office-reload-btn:hover {
         opacity: 1;
       }
       iframe,
@@ -257,10 +257,10 @@ const SOURCE_INPUTS = ['url', 'viewer', 'viewerUrl', 'queryParams', 'overrideLoc
         height: 100%;
       }
       @media (max-width: 768px) {
-        .inline-document-shell {
+        .ngx-doc-viewer-inline-document-shell {
           padding: 12px;
         }
-        .inline-document-page {
+        .ngx-doc-viewer-inline-document-page {
           border-radius: 12px;
           padding: 22px 18px;
         }
@@ -429,7 +429,11 @@ export class NgxDocViewerComponent implements OnChanges, OnDestroy {
           }
           recovery.clearTimers();
           this.errorText.set(
-            error instanceof Error ? error.message : 'Unable to load document.',
+            typeof error === 'string'
+              ? error
+              : error instanceof Error
+                ? error.message
+                : 'Unable to load document.',
           );
           this.setRenderPhase('error');
         },

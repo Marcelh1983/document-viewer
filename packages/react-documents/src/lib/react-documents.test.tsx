@@ -126,6 +126,26 @@ describe('DocumentViewer', () => {
     expect(container.querySelector('iframe')).not.toBe(first);
   });
 
+  it('sandboxes only the google viewer iframe, without allow-downloads', () => {
+    act(() =>
+      root.render(
+        <DocumentViewer viewer="google" url="https://example.com/file.docx" />,
+      ),
+    );
+    const sandbox = container.querySelector('iframe')?.getAttribute('sandbox');
+    expect(sandbox).toContain('allow-same-origin');
+    expect(sandbox).not.toContain('allow-downloads');
+
+    act(() =>
+      root.render(
+        <DocumentViewer viewer="office" url="https://example.com/file.docx" />,
+      ),
+    );
+    expect(container.querySelector('iframe')?.hasAttribute('sandbox')).toBe(
+      false,
+    );
+  });
+
   it('covers the google popout button when disableContent is popout', () => {
     act(() =>
       root.render(
@@ -218,6 +238,26 @@ describe('DocumentViewer', () => {
 
       expect(container.innerHTML).toContain('<p>converted</p>');
       expect(loaded).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows why the file could not be downloaded', async () => {
+      class NotFoundXhr {
+        status = 0;
+        onload?: () => void;
+        open() {}
+        send() {
+          this.status = 404;
+          this.onload?.();
+        }
+      }
+      globals['XMLHttpRequest'] = NotFoundXhr;
+      await act(async () =>
+        root.render(
+          <DocumentViewer viewer="mammoth" url="https://example.com/a.docx" />,
+        ),
+      );
+
+      expect(container.textContent).toContain('(status 404)');
     });
 
     it('shows a timeout error when the conversion never finishes', () => {
